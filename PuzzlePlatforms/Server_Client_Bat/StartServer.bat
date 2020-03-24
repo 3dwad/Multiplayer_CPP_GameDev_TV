@@ -1,0 +1,1 @@
+"D:\Epic Games\UE_4.24\Engine\Binaries\Win64\UE4Editor.exe" "D:\KrakenRep\Multiplayer_CPP_GameDev_TV\PuzzlePlatforms\PuzzlePlatforms.uproject" ThirdPersonExampleMap -server -log -nostream
