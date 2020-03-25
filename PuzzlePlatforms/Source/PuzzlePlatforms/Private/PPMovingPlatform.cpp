@@ -4,6 +4,7 @@
 #include "PPMovingPlatform.h"
 #include "DrawDebugHelpers.h"
 #include "Kismet//KismetMathLibrary.h"
+#include "Engine/Engine.h"
 
 
 APPMovingPlatform::APPMovingPlatform()
@@ -29,11 +30,15 @@ void APPMovingPlatform::BeginPlay()
 		
 		SetReplicates(true);
 		SetReplicateMovement(true);
-				
+
+		GlobalStartLocation = GetActorLocation();
+		GlobalFinishLocation = GetTransform().TransformPosition(TargetLocation);
 	}
 
-
 }
+
+
+
 
 
 
@@ -41,22 +46,40 @@ void APPMovingPlatform::Tick(float DeltaSeconds)
 {
 	Super::Tick(DeltaSeconds);
 
+	if (HasAuthority())
+	{
+		float DistanceToFinish = (GlobalFinishLocation - GetActorLocation()).Size();
+
+		GEngine->AddOnScreenDebugMessage(1, 0.f, FColor::Red, "Distance To Finish:" + FString::SanitizeFloat(DistanceToFinish));
+
+		if (DistanceToFinish < 10.f)
+		{
+			ChangeDirection();
+
+			UE_LOG(LogTemp, Warning, TEXT("Change Direction Called"));
+		}
+
+	}	
+
+
 	 if (TargetLocation != FVector(0.f) && HasAuthority())
-	 {
+	 {		 
 		 //	Find direction between two vectors. Necessary normalize it
-		 FVector DirectionToMove = (TargetLocation - DirectionToMove).GetSafeNormal();		
-		 AddActorLocalOffset(DirectionToMove * Speed * DeltaSeconds, true);
-
-		 /* We can convert vector in local coordinate system into global coordinate system. Example below
-		 FVector GlobalDirection = GetTransform().TransformPosition(DirectionToMove);
-		 */
-		 		 
-		 // UE_LOG(LogTemp, Warning, TEXT("Mooooving!"));
-	 }
-
-		 //DrawDebugString(GetWorld(), GetActorLocation(), "Not Replicated",nullptr,FColor::White,0.f);
-	  
-
+		 FVector DirectionToMove = (GlobalFinishLocation - GlobalStartLocation).GetSafeNormal();		
+		 AddActorWorldOffset(DirectionToMove * Speed * DeltaSeconds, false);  		 
+		 		
+	 }  
 }
 
+//	Swap Start and Finish vectors
+void APPMovingPlatform::ChangeDirection()
+{
+	
+	FVector Temp;
+
+	Temp = GlobalStartLocation;
+	GlobalStartLocation = GlobalFinishLocation;
+	GlobalFinishLocation = Temp;	
+
+}
 

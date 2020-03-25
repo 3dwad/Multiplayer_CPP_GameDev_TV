@@ -33,4 +33,16 @@ public:
 protected:
 
 	
+	FVector GlobalStartLocation;
+	FVector GlobalFinishLocation;
+
+
+public:
+
+	UFUNCTION()
+	void ChangeDirection();
 };
+
+
+
+
