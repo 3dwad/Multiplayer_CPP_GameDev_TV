@@ -37,11 +37,6 @@ void APPMovingPlatform::BeginPlay()
 
 }
 
-
-
-
-
-
 void APPMovingPlatform::Tick(float DeltaSeconds)
 {
 	Super::Tick(DeltaSeconds);
@@ -50,8 +45,7 @@ void APPMovingPlatform::Tick(float DeltaSeconds)
 	{
 		float DistanceToFinish = (GlobalFinishLocation - GetActorLocation()).Size();
 
-		GEngine->AddOnScreenDebugMessage(1, 0.f, FColor::Red, "Distance To Finish:" + FString::SanitizeFloat(DistanceToFinish));
-
+		
 		if (DistanceToFinish < 10.f)
 		{
 			ChangeDirection();
@@ -62,7 +56,7 @@ void APPMovingPlatform::Tick(float DeltaSeconds)
 	}	
 
 
-	 if (TargetLocation != FVector(0.f) && HasAuthority())
+	 if (TargetLocation != FVector(0.f) && HasAuthority() && ActiveTriggers>0)
 	 {		 
 		 //	Find direction between two vectors. Necessary normalize it
 		 FVector DirectionToMove = (GlobalFinishLocation - GlobalStartLocation).GetSafeNormal();		
@@ -81,5 +75,16 @@ void APPMovingPlatform::ChangeDirection()
 	GlobalStartLocation = GlobalFinishLocation;
 	GlobalFinishLocation = Temp;	
 
+}
+
+
+void APPMovingPlatform::AddActiveTrigger()
+{
+	ActiveTriggers++;
+}
+
+void APPMovingPlatform::RemoveActiveTrigger()
+{
+	ActiveTriggers--;
 }
 
