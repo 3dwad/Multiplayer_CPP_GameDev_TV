@@ -3,6 +3,7 @@
 
 #include "PPGameInstance.h"
 #include "Engine/Engine.h"
+#include "GameFramework/PlayerController.h"
 
 
 UPPGameInstance::UPPGameInstance()
@@ -21,9 +22,11 @@ void UPPGameInstance::Init()
 
 void UPPGameInstance::Host()
 {
-	GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Green, "Fak eah!");
-	GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Green, "Second message!");
-	GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Green, "Third message!");
+	
+	GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Green, "Hosting!");
+
+	GetWorld()->ServerTravel("/Game/ThirdPersonCPP/Maps/MainMap?listen");
+
 
 }
 
@@ -32,7 +35,13 @@ void UPPGameInstance::Join(const FString& IPAdress)
 
 	GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Green, "Connect to: " + IPAdress + " was successful");
 
-	
+	APlayerController* L_Playercontroller = (GetFirstLocalPlayerController());
+
+	if (L_Playercontroller)
+	{
+		L_Playercontroller->ClientTravel(IPAdress, ETravelType::TRAVEL_Absolute);
+
+	}
 	
 
 }
