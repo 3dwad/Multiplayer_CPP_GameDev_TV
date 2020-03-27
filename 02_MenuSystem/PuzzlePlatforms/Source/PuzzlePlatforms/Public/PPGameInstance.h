@@ -31,10 +31,13 @@ public:
 	UFUNCTION(Exec)
 	void Join(const FString& IPAdress);
 
+	UFUNCTION(Exec, BlueprintCallable)
+	void LoadMenu();
+
 protected:
 
 	//	Create pointer on class reference
 	UPROPERTY()
-	TSubclassOf<UUserWidget> MainMenu;
+	TSubclassOf<UUserWidget> MainMenuClass;
 
 };

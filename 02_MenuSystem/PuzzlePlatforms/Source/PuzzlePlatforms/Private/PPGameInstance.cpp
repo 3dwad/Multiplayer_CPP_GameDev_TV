@@ -16,7 +16,7 @@ UPPGameInstance::UPPGameInstance()
 	if (MainMenuBPClass.Class != NULL)
 	{		
 		//	Fill pointer
-		MainMenu = MainMenuBPClass.Class;
+		MainMenuClass = MainMenuBPClass.Class;
 		
 	}
 	
@@ -27,9 +27,40 @@ void UPPGameInstance::Init()
 {
 
 
-	UE_LOG(LogTemp, Warning, TEXT("Found class %s"), *MainMenu->GetName());
+	UE_LOG(LogTemp, Warning, TEXT("Found class %s"), *MainMenuClass->GetName());
 
 }
+
+
+void UPPGameInstance::LoadMenu()
+{
+
+	/* Create widget, add to viewport and fill pointer*/
+	UUserWidget* MenuWidget = CreateWidget(this, MainMenuClass);
+
+	if (MenuWidget->IsInViewport()==false)
+	{
+		MenuWidget->AddToViewport();
+
+		APlayerController* PlayerController = GetFirstLocalPlayerController(GetWorld());
+		if (PlayerController)
+		{
+			/* Create input data. Set input data settings*/
+
+			FInputModeUIOnly MyInputData;			
+			MyInputData.SetLockMouseToViewportBehavior(EMouseLockMode::LockAlways);
+			
+			/* Set input mode with input data*/
+			PlayerController->SetInputMode(MyInputData);
+
+			/* Show mouse cursor*/
+			GetFirstLocalPlayerController(GetWorld())->bShowMouseCursor = true;
+		
+		}		
+
+	}
+}
+
 
 void UPPGameInstance::Host()
 {
@@ -56,4 +87,6 @@ void UPPGameInstance::Join(const FString& IPAdress)
 	
 
 }
+
+
 
