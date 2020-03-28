@@ -5,6 +5,7 @@
 #include "GameFramework/PlayerController.h"
 #include "UObject/ConstructorHelpers.h"
 #include "Blueprint/UserWidget.h"
+#include "MenuSystem/PPMainMenu.h"
 
 #include "PPPlatformTrigger.h"
 
@@ -12,15 +13,18 @@
 UPPGameInstance::UPPGameInstance()
 {
 	//	Get reference from BPClass
-	ConstructorHelpers::FClassFinder<UUserWidget> MainMenuBPClass(TEXT("/Game/MenuSystem/WBP_MainMenu"));
+	ConstructorHelpers::FClassFinder<UPPMainMenu> MainMenuBPClass(TEXT("/Game/MenuSystem/WBP_MainMenu"));
 	if (MainMenuBPClass.Class != NULL)
 	{		
 		//	Fill pointer
 		MainMenuClass = MainMenuBPClass.Class;
 		
+	}	
+	else
+	{
+
 	}
-	
-	
+
 }
 
 void UPPGameInstance::Init()
@@ -36,53 +40,49 @@ void UPPGameInstance::LoadMenu()
 {
 
 	/* Create widget, add to viewport and fill pointer*/
-	UUserWidget* MenuWidget = CreateWidget(this, MainMenuClass);
+	 MainMenu = CreateWidget<UPPMainMenu>(this, MainMenuClass);
 
-	if (MenuWidget->IsInViewport()==false)
-	{
-		MenuWidget->AddToViewport();
+	if (MainMenu)
+	{		
+		/* Call setup*/
+		MainMenu->Setup();
 
-		APlayerController* PlayerController = GetFirstLocalPlayerController(GetWorld());
-		if (PlayerController)
-		{
-			/* Create input data. Set input data settings*/
-
-			FInputModeUIOnly MyInputData;			
-			MyInputData.SetLockMouseToViewportBehavior(EMouseLockMode::LockAlways);
-			
-			/* Set input mode with input data*/
-			PlayerController->SetInputMode(MyInputData);
-
-			/* Show mouse cursor*/
-			GetFirstLocalPlayerController(GetWorld())->bShowMouseCursor = true;
-		
-		}		
-
+		/* Sen self in widget to get access to function in interface*/
+		MainMenu->SetMenuInterface(this);
 	}
+	
 }
 
 
-void UPPGameInstance::Host()
+void UPPGameInstance::Host_Interface()
 {
 	
-	GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Green, "Hosting!");
+	if (MainMenu)
+	{
 
-	GetWorld()->ServerTravel("/Game/ThirdPersonCPP/Maps/MainMap?listen");
+		GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Green, "Hosting!");
 
+		GetWorld()->ServerTravel("/Game/ThirdPersonCPP/Maps/MainMap?listen");
 
+		MainMenu->Hide();
+
+	}	
 }
 
-void UPPGameInstance::Join(const FString& IPAdress)
+void UPPGameInstance::Join_Interface(const FString& Adress)
 {
 
-	GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Green, "Connect to: " + IPAdress + " was successful");
+	UE_LOG(LogTemp, Warning, TEXT("Enter string is: %s"), *Adress);
+
+	GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Green, "Connect to: " + Adress + " was successful");
 
 	APlayerController* L_Playercontroller = (GetFirstLocalPlayerController());
 
 	if (L_Playercontroller)
 	{
-		L_Playercontroller->ClientTravel(IPAdress, ETravelType::TRAVEL_Absolute);
+		L_Playercontroller->ClientTravel(Adress, ETravelType::TRAVEL_Absolute);
 
+		MainMenu->Hide();
 	}
 	
 

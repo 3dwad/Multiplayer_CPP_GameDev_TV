@@ -4,15 +4,16 @@
 
 #include "CoreMinimal.h"
 #include "Engine/GameInstance.h"
+#include "MenuSystem/PPMenuSystemInterface.h"
 #include "PPGameInstance.generated.h"
 
-class UUserWidget;
+class UPPMainMenu;
 
 /**
  * 
  */
-UCLASS()
-class PUZZLEPLATFORMS_API UPPGameInstance : public UGameInstance
+UCLASS()														/* That mean we add interface to this class */
+class PUZZLEPLATFORMS_API UPPGameInstance : public UGameInstance , public IPPMenuSystemInterface
 {
 	GENERATED_BODY()
 
@@ -26,18 +27,23 @@ public:
 
 	/* Exec do available to call from console*/
 	UFUNCTION(Exec)
-	void Host();
+	void Host_Interface() override;
 
 	UFUNCTION(Exec)
-	void Join(const FString& IPAdress);
+	void Join_Interface(const FString& Adress);
 
 	UFUNCTION(Exec, BlueprintCallable)
 	void LoadMenu();
+
 
 protected:
 
 	//	Create pointer on class reference
 	UPROPERTY()
-	TSubclassOf<UUserWidget> MainMenuClass;
+	TSubclassOf<UPPMainMenu> MainMenuClass;
+
+private:
+
+	UPPMainMenu* MainMenu;
 
 };

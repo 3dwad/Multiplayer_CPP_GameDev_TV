@@ -4,10 +4,13 @@
 
 #include "CoreMinimal.h"
 #include "Blueprint/UserWidget.h"
+#include "MenuSystem/PPMenuSystemInterface.h"
 #include "PPMainMenu.generated.h"
 
 
 class UButton;
+class UWidgetSwitcher;
+class UEditableTextBox;
 
 
 /**
@@ -29,8 +32,28 @@ public:
 	UPROPERTY(meta = (BindWidget))
 	UButton* Join;
 
+	UPROPERTY(meta = (BindWidget))
+	UButton* Cancel;
+
+	UPROPERTY(meta = (BindWidget))
+	UButton* OK;
+
+	UPROPERTY(meta = (BindWidget))
+	UEditableTextBox* EnterBox;
+
+	UPROPERTY(meta = (BindWidget))
+	UWidgetSwitcher* MenuSwitcher;
+
+
+
 	bool Initialize() override;
 	
+
+	void SetMenuInterface(IPPMenuSystemInterface* Interface);
+
+	void Setup();
+
+	void Hide();
 
 	
 
@@ -42,8 +65,24 @@ protected:
 	UFUNCTION()
 	void OnJoinClicked();
 
+	UFUNCTION()
+	void OnCancelClicked();
+
+	UFUNCTION()
+	void OnOkClicked();
+
+	UFUNCTION()
+	void SetMenuSwitcher(int32 Index);
+
+	UFUNCTION()
+	void OnBoxTextChanged(const FText& Text);
 
 
 private:
+
+	FString IPAdress;
+
+	IPPMenuSystemInterface* MenuInterface;
+
 
 };
