@@ -8,6 +8,9 @@
 #include "GameFramework/CharacterMovementComponent.h"
 #include "GameFramework/Controller.h"
 #include "GameFramework/SpringArmComponent.h"
+#include "UObject/ConstructorHelpers.h"
+#include "MenuSystem/PPPauseMenu.h"
+#include "Engine/Engine.h"
 
 //////////////////////////////////////////////////////////////////////////
 // APuzzlePlatformsCharacter
@@ -45,6 +48,22 @@ APuzzlePlatformsCharacter::APuzzlePlatformsCharacter()
 
 	// Note: The skeletal mesh and anim blueprint references on the Mesh component (inherited from Character) 
 	// are set in the derived blueprint asset named MyCharacter (to avoid direct content references in C++)
+
+
+
+	//	Get reference from BPClass
+	ConstructorHelpers::FClassFinder<UPPPauseMenu> PauseMenuBPClass(TEXT("/Game/MenuSystem/WBP_PauseMenu"));
+	if (PauseMenuBPClass.Class != NULL)
+	{
+		//	Fill pointer
+		PauseMenuClass = PauseMenuBPClass.Class;
+
+		UE_LOG(LogTemp, Warning, TEXT("Found class %s"), *PauseMenuClass->GetName());
+	}
+
+
+
+
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -74,7 +93,39 @@ void APuzzlePlatformsCharacter::SetupPlayerInputComponent(class UInputComponent*
 
 	// VR headset functionality
 	PlayerInputComponent->BindAction("ResetVR", IE_Pressed, this, &APuzzlePlatformsCharacter::OnResetVR);
+
+	// Setup bind to call pause menu
+	PlayerInputComponent->BindAction("PauseMenu", IE_Pressed, this, &APuzzlePlatformsCharacter::OpenPauseMenu);
 }
+
+
+void APuzzlePlatformsCharacter::OpenPauseMenu()
+{
+
+	GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Green, "Pause menu called");
+
+	/* Create widget, add to viewport and fill pointer*/
+
+	/* If widget already on screen, call hide*/
+	if (PauseMenuWidget && PauseMenuWidget->IsInViewport())
+	{
+		GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Green, "Try call Hide()");
+
+		PauseMenuWidget->Hide();
+	}
+
+	else
+	{
+		if (PauseMenuClass)
+		{
+			PauseMenuWidget = CreateWidget<UPPPauseMenu>(GetWorld(), PauseMenuClass);
+			PauseMenuWidget->Setup();
+		}
+	}
+
+
+}
+
 
 
 void APuzzlePlatformsCharacter::OnResetVR()
@@ -84,12 +135,12 @@ void APuzzlePlatformsCharacter::OnResetVR()
 
 void APuzzlePlatformsCharacter::TouchStarted(ETouchIndex::Type FingerIndex, FVector Location)
 {
-		Jump();
+	Jump();
 }
 
 void APuzzlePlatformsCharacter::TouchStopped(ETouchIndex::Type FingerIndex, FVector Location)
 {
-		StopJumping();
+	StopJumping();
 }
 
 void APuzzlePlatformsCharacter::TurnAtRate(float Rate)
@@ -120,12 +171,12 @@ void APuzzlePlatformsCharacter::MoveForward(float Value)
 
 void APuzzlePlatformsCharacter::MoveRight(float Value)
 {
-	if ( (Controller != NULL) && (Value != 0.0f) )
+	if ((Controller != NULL) && (Value != 0.0f))
 	{
 		// find out which way is right
 		const FRotator Rotation = Controller->GetControlRotation();
 		const FRotator YawRotation(0, Rotation.Yaw, 0);
-	
+
 		// get right vector 
 		const FVector Direction = FRotationMatrix(YawRotation).GetUnitAxis(EAxis::Y);
 		// add movement in that direction

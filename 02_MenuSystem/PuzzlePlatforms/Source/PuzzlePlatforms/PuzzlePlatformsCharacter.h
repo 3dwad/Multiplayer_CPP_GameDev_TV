@@ -6,6 +6,8 @@
 #include "GameFramework/Character.h"
 #include "PuzzlePlatformsCharacter.generated.h"
 
+class UPPPauseMenu;
+
 UCLASS(config=Game)
 class APuzzlePlatformsCharacter : public ACharacter
 {
@@ -68,5 +70,18 @@ public:
 	FORCEINLINE class USpringArmComponent* GetCameraBoom() const { return CameraBoom; }
 	/** Returns FollowCamera subobject **/
 	FORCEINLINE class UCameraComponent* GetFollowCamera() const { return FollowCamera; }
+
+private:
+
+	//	Create pointer on class reference
+	UPROPERTY()
+	TSubclassOf<UPPPauseMenu> PauseMenuClass;
+
+	UPPPauseMenu* PauseMenuWidget;
+
+public:
+
+	UFUNCTION()
+	void OpenPauseMenu();
 };
 

@@ -6,6 +6,7 @@
 #include "UObject/ConstructorHelpers.h"
 #include "Blueprint/UserWidget.h"
 #include "MenuSystem/PPMainMenu.h"
+#include "Kismet/KismetSystemLibrary.h"
 
 #include "PPPlatformTrigger.h"
 
@@ -17,13 +18,9 @@ UPPGameInstance::UPPGameInstance()
 	if (MainMenuBPClass.Class != NULL)
 	{		
 		//	Fill pointer
-		MainMenuClass = MainMenuBPClass.Class;
-		
+		MainMenuClass = MainMenuBPClass.Class;		
 	}	
-	else
-	{
-
-	}
+	
 
 }
 
@@ -88,5 +85,11 @@ void UPPGameInstance::Join_Interface(const FString& Adress)
 
 }
 
+void UPPGameInstance::ExitGame_Interface()
+{
+
+	UKismetSystemLibrary::QuitGame(this, GetFirstLocalPlayerController(),EQuitPreference::Quit,true);
+
+}
 
 

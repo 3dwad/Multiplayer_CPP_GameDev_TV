@@ -31,5 +31,7 @@ public:
 
 	virtual void Join_Interface(const FString& Adress) = 0;
 
+	virtual void ExitGame_Interface() = 0;
+
 
 };

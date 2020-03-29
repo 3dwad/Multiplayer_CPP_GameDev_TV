@@ -38,6 +38,10 @@ public:
 	UPROPERTY(meta = (BindWidget))
 	UButton* OK;
 
+	
+	UPROPERTY(meta = (BindWidget))
+	UButton* QuitButton;
+	
 	UPROPERTY(meta = (BindWidget))
 	UEditableTextBox* EnterBox;
 
@@ -70,6 +74,9 @@ protected:
 
 	UFUNCTION()
 	void OnOkClicked();
+
+	UFUNCTION()
+	void OnQuitClicked();
 
 	UFUNCTION()
 	void SetMenuSwitcher(int32 Index);

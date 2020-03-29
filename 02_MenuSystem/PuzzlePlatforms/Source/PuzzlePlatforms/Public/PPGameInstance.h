@@ -30,7 +30,10 @@ public:
 	void Host_Interface() override;
 
 	UFUNCTION(Exec)
-	void Join_Interface(const FString& Adress);
+	void Join_Interface(const FString& Adress) override;
+
+	UFUNCTION()
+	void ExitGame_Interface() override;
 
 	UFUNCTION(Exec, BlueprintCallable)
 	void LoadMenu();

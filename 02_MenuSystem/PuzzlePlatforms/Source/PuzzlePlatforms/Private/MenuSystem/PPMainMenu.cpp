@@ -21,6 +21,7 @@ bool UPPMainMenu::Initialize()
 	Join->OnClicked.AddDynamic(this, &UPPMainMenu::OnJoinClicked);
 	Cancel->OnClicked.AddDynamic(this, &UPPMainMenu::OnCancelClicked);
 	OK->OnClicked.AddDynamic(this, &UPPMainMenu::OnOkClicked);
+	QuitButton->OnClicked.AddDynamic(this, &UPPMainMenu::OnQuitClicked);
 
 	EnterBox->OnTextChanged.AddDynamic(this, &UPPMainMenu::OnBoxTextChanged);
 
@@ -100,6 +101,15 @@ void UPPMainMenu::OnOkClicked()
 }
 
 
+
+void UPPMainMenu::OnQuitClicked()
+{
+	//	Thaw we can call function from interface
+	if (MenuInterface)
+	{
+		MenuInterface->ExitGame_Interface();
+	}
+}
 
 void UPPMainMenu::SetMenuSwitcher(int32 Index)
 {
