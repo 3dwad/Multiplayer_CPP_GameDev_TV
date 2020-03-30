@@ -5,9 +5,14 @@
 #include "CoreMinimal.h"
 #include "Engine/GameInstance.h"
 #include "MenuSystem/PPMenuSystemInterface.h"
+#include "OnlineSubsystem.h"
+#include "OnlineSessionSettings.h"
 #include "PPGameInstance.generated.h"
 
 class UPPMainMenu;
+class IOnlineSubsystem;
+
+
 
 /**
  * 
@@ -36,7 +41,19 @@ public:
 	void ExitGame_Interface() override;
 
 	UFUNCTION(Exec, BlueprintCallable)
-	void LoadMenu();
+	void LoadMenuWidget();
+
+	UFUNCTION()
+	void SessionCreated(FName SessionName, bool Succes);
+
+	UFUNCTION()
+	void SessionIsOver(FName SessionName, bool Succes);
+
+	UFUNCTION()
+	void CreateSession();
+
+	UFUNCTION()
+	void SessionFindComplete(bool Succes);
 
 
 protected:
@@ -44,6 +61,17 @@ protected:
 	//	Create pointer on class reference
 	UPROPERTY()
 	TSubclassOf<UPPMainMenu> MainMenuClass;
+	
+	//	Pointer to OnlineSystem interface
+	IOnlineSubsystem* PPOnlineSubsystem;
+
+	//	SharedPointer to SessioInterface
+	IOnlineSessionPtr SessionInterface;
+
+	// New shared pointer
+	TSharedPtr<FOnlineSessionSearch> SessionSerchPtr;
+
+		
 
 private:
 
