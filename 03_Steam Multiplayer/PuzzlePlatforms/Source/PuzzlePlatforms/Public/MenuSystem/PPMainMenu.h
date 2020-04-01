@@ -10,7 +10,7 @@
 
 class UButton;
 class UWidgetSwitcher;
-class UEditableTextBox;
+class UPanelWidget;
 
 
 /**
@@ -37,27 +37,32 @@ public:
 
 	UPROPERTY(meta = (BindWidget))
 	UButton* OK;
-
 	
 	UPROPERTY(meta = (BindWidget))
 	UButton* QuitButton;
 	
 	UPROPERTY(meta = (BindWidget))
-	UEditableTextBox* EnterBox;
+	UPanelWidget* ScrollBoxWithSessions;
 
 	UPROPERTY(meta = (BindWidget))
 	UWidgetSwitcher* MenuSwitcher;
 
-
-
-	bool Initialize() override;
 	
+	
+
+
+
+	bool Initialize() override;	
 
 	void SetMenuInterface(IPPMenuSystemInterface* Interface);
 
 	void Setup();
 
 	void Hide();
+	
+	void AddChildToScrollBox(UWidget* NewChild);
+
+	void ClearScrollBoxChildrens();
 
 	
 
@@ -80,16 +85,13 @@ protected:
 
 	UFUNCTION()
 	void SetMenuSwitcher(int32 Index);
-
-	UFUNCTION()
-	void OnBoxTextChanged(const FText& Text);
+	
+	
 
 
 private:
-
-	FString IPAdress;
-
-	IPPMenuSystemInterface* MenuInterface;
+		
+	IPPMenuSystemInterface* MenuInterface;	
 
 
 };

@@ -6,17 +6,20 @@
 #include "UObject/ConstructorHelpers.h"
 #include "Blueprint/UserWidget.h"
 #include "MenuSystem/PPMainMenu.h"
+#include "MenuSystem/PPSessionAdressRow.h"
+#include "Components/TextBlock.h"
 #include "Kismet/KismetSystemLibrary.h"
 #include "PPPlatformTrigger.h"
+#include "OnlineSubsystem.h"
 #include "OnlineSessionSettings.h"
-#include "Interfaces/OnlineSessionInterface.h"
 
 
 
 const static FName SESSION_NAME = TEXT("MyAwesomeSession");
 
 
-UPPGameInstance::UPPGameInstance()
+
+UPPGameInstance::UPPGameInstance(const FObjectInitializer& ObjectInitializer)
 {
 	//	Get reference from BPClass
 	ConstructorHelpers::FClassFinder<UPPMainMenu> MainMenuBPClass(TEXT("/Game/MenuSystem/WBP_MainMenu"));
@@ -26,6 +29,14 @@ UPPGameInstance::UPPGameInstance()
 		MainMenuClass = MainMenuBPClass.Class;
 	}
 
+
+	//	Get reference from BPClass
+	ConstructorHelpers::FClassFinder<UPPSessionAdressRow> SessionAdressBPClass(TEXT("/Game/MenuSystem/WBP_SessionAdressRow"));
+	if (SessionAdressBPClass.Class != NULL)
+	{
+		//	Fill pointer
+		SessionAdressClass = SessionAdressBPClass.Class;
+	}
 
 }
 
@@ -46,33 +57,11 @@ void UPPGameInstance::Init()
 		/*	Bind to delegate OnCreateSession*/
 		SessionInterface->OnCreateSessionCompleteDelegates.AddUObject(this, &UPPGameInstance::SessionCreated);
 		/* Bind to delegate OnSessionEnd*/
-		SessionInterface->OnDestroySessionCompleteDelegates.AddUObject(this, &UPPGameInstance::SessionIsOver);
-		
-		// Fill shared pointer to a new object
-		SessionSerchPtr = MakeShareable(new FOnlineSessionSearch());
-		
-
-		//	Necessary check to valid 
-		if (SessionSerchPtr)
-		{
-			//	Convert Share pointer to share reference
-			TSharedRef<FOnlineSessionSearch> SessionSerchRef = SessionSerchPtr.ToSharedRef();
-			SessionSerchPtr->bIsLanQuery = true;
-			//SessionSerchPtr->QuerySettings.Set()
-			
-			SessionInterface->FindSessions(0, SessionSerchRef);
-
-			UE_LOG(LogTemp, Warning, TEXT("Start find session"));
-
-			/* Bind to delegate OnFindSessionComplete*/
-			SessionInterface->OnFindSessionsCompleteDelegates.AddUObject(this, &UPPGameInstance::SessionFindComplete);
-			
-		}
-		else
-		{
-			UE_LOG(LogTemp, Error, TEXT("TSharePtr is null"));
-		}
-
+		SessionInterface->OnDestroySessionCompleteDelegates.AddUObject(this, &UPPGameInstance::SessionIsOver);		
+		/* Bind to delegate OnFindSessionComplete*/
+		SessionInterface->OnFindSessionsCompleteDelegates.AddUObject(this, &UPPGameInstance::SessionFindComplete);	
+		/* Bind to delegate OnJoinSessionComplete*/
+		SessionInterface->OnJoinSessionCompleteDelegates.AddUObject(this, &UPPGameInstance::OnJoinSessionComplete);		
 	}
 }
 
@@ -81,14 +70,14 @@ void UPPGameInstance::LoadMenuWidget()
 	if (MainMenuClass)
 	{
 		/* Create widget, add to viewport and fill pointer*/
-		MainMenu = CreateWidget<UPPMainMenu>(this, MainMenuClass);
-		if (MainMenu)
+		MainMenuWidgaet = CreateWidget<UPPMainMenu>(this, MainMenuClass);
+		if (MainMenuWidgaet)
 		{
 			/* Call setup*/
-			MainMenu->Setup();
+			MainMenuWidgaet->Setup();
 
-			/* Sen self in widget to get access to function in interface*/
-			MainMenu->SetMenuInterface(this);
+			/* Send self in widget to get access to function in interface*/
+			MainMenuWidgaet->SetMenuInterface(this);
 		}
 	}
 }
@@ -102,16 +91,15 @@ void UPPGameInstance::SessionCreated(FName SessionName, bool Succes)
 	{
 		UE_LOG(LogTemp, Warning, TEXT("Session %s was create succeful"), *SessionName.ToString())
 
-			GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Green, "Hosting!");
+		GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Green, "Hosting!");
 
 		GetWorld()->ServerTravel("/Game/ThirdPersonCPP/Maps/MainMap?listen");
 
-		MainMenu->Hide();
+		MainMenuWidgaet->Hide();
 	}
 	else
 	{
 		UE_LOG(LogTemp, Error, TEXT("Session not created"));
-
 	}
 
 }
@@ -127,16 +115,15 @@ void UPPGameInstance::SessionIsOver(FName SessionName, bool Succes)
 
 void UPPGameInstance::CreateSession()
 {
-		
+	/* Place to setup settings for Session*/
 	FOnlineSessionSettings SessionSettings;
-	SessionSettings.bIsLANMatch = true;
+	SessionSettings.bIsLANMatch = false;
 	SessionSettings.NumPublicConnections = 2;
 	SessionSettings.bShouldAdvertise = true;
+	SessionSettings.bUsesPresence = true;
 	
-
 	if (SessionInterface)
-	{
-		UE_LOG(LogTemp, Warning, TEXT("SessionInterface is valid!"));
+	{		
 		SessionInterface->CreateSession(0, SESSION_NAME, SessionSettings);
 	}
 
@@ -149,19 +136,77 @@ void UPPGameInstance::SessionFindComplete(bool Succes)
 		UE_LOG(LogTemp, Warning, TEXT("Session find succeful completed"));
 
 		/* Get Array of founded sessions*/
-		TArray<FOnlineSessionSearchResult> SearchResult;
+		TArray<FOnlineSessionSearchResult> SearchResult;		
 		SearchResult = SessionSerchPtr->SearchResults;
+		
 
 		/* For each loop print Sessions ID*/
-		for (FOnlineSessionSearchResult & Index : SearchResult)
+		for (int32 Index=0; Index<SearchResult.Num(); Index++)
 		{
-			UE_LOG(LogTemp, Warning, TEXT("Found session: %s"), *Index.GetSessionIdStr());
-		}
+			FOnlineSessionSearchResult CurrentElement = SearchResult[Index];
 
+			uint32 I = Index;
+			UE_LOG(LogTemp, Warning, TEXT("Found session: %s"), *CurrentElement.GetSessionIdStr());
+
+			FText SessionName = FText::FromString(CurrentElement.GetSessionIdStr());
+			CreateSessionRowWidget(SessionName,I);
+			
+		}						
+		
 	}
 	else
 	{
 		UE_LOG(LogTemp, Error, TEXT("Session find failed"));
+	}
+}
+
+void UPPGameInstance::CreateSessionRowWidget(FText SessionName, uint32 Index)
+{
+	if (SessionAdressClass)
+	{
+
+		SessionAdressWidget = CreateWidget<UPPSessionAdressRow>(this, SessionAdressClass);
+		SessionAdressWidget->Setup(this, SessionName, Index);		
+		MainMenuWidgaet->AddChildToScrollBox(SessionAdressWidget);
+		
+	}
+	else
+	{
+		UE_LOG(LogTemp, Warning, TEXT("SessionAdressClass not found"))
+	}
+	
+
+}
+
+void UPPGameInstance::SetSelectedIndex(uint32 InIndex)
+{
+
+	SelectedIndex = InIndex;
+
+	int32 Index = SelectedIndex;
+
+	UE_LOG(LogTemp, Warning, TEXT("Selected index is %s"), *FString::FromInt(Index));
+}
+
+void UPPGameInstance::OnJoinSessionComplete(FName SessionName, EOnJoinSessionCompleteResult::Type Result)
+{	
+
+	FString ConnectionInfo;
+
+	bool isStringSucces = SessionInterface->GetResolvedConnectString(SESSION_NAME, ConnectionInfo);
+
+	if (isStringSucces)
+	{
+
+		APlayerController* L_Playercontroller = (GetFirstLocalPlayerController());
+
+		if (L_Playercontroller)
+		{
+			L_Playercontroller->ClientTravel(ConnectionInfo, ETravelType::TRAVEL_Absolute);
+
+			MainMenuWidgaet->Hide();
+		}
+
 	}
 
 
@@ -187,23 +232,62 @@ void UPPGameInstance::Host_Interface()
 
 }
 
-void UPPGameInstance::Join_Interface(const FString& Adress)
+void UPPGameInstance::Join_Interface()
 {
+	// Fill shared pointer to a new object
+		
+	SessionSerchPtr = MakeShareable(new FOnlineSessionSearch());
+	
+	/* Debug
+	int32 SerchCount = SessionSerchPtr.GetSharedReferenceCount();
 
-	UE_LOG(LogTemp, Warning, TEXT("Enter string is: %s"), *Adress);
+	UE_LOG(LogTemp, Warning, TEXT("searching sessions is: %s"), *FString::FromInt(SerchCount));
+	*/
 
-	GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Green, "Connect to: " + Adress + " was successful");
-
-	APlayerController* L_Playercontroller = (GetFirstLocalPlayerController());
-
-	if (L_Playercontroller)
+	//	Necessary check to valid 
+	if (SessionSerchPtr)
 	{
-		L_Playercontroller->ClientTravel(Adress, ETravelType::TRAVEL_Absolute);
+		SessionSerchPtr->MaxSearchResults = 100;
+		SessionSerchPtr->QuerySettings.Set(SEARCH_PRESENCE, true, EOnlineComparisonOp::Equals);
 
-		MainMenu->Hide();
+
+		//	Convert Share pointer to share reference
+		TSharedRef<FOnlineSessionSearch> SessionSerchRef = SessionSerchPtr.ToSharedRef();		
+		
+		SessionInterface->FindSessions(0, SessionSerchRef);
+
+		/* Clear children and start find active sessions*/
+		MainMenuWidgaet->ClearScrollBoxChildrens();
+
+		UE_LOG(LogTemp, Warning, TEXT("Start find session"));
+		
 	}
+	else
+	{
+		UE_LOG(LogTemp, Error, TEXT("TSharePtr is null"));
+	}
+}
 
+void UPPGameInstance::OK_Interface()
+{
+	
 
+	if (SessionInterface && SessionSerchPtr.IsValid())
+	{
+
+		int32 Index = SelectedIndex;
+
+		UE_LOG(LogTemp, Warning, TEXT("Try Connect to %s"), *FString::FromInt(Index));
+
+		SessionInterface->JoinSession(0, SESSION_NAME, SessionSerchPtr->SearchResults[SelectedIndex]);
+
+	}
+	else
+	{
+
+		UE_LOG(LogTemp, Warning, TEXT("SessionSearchPtr is null"));
+	}
+	
 }
 
 void UPPGameInstance::ExitGame_Interface()

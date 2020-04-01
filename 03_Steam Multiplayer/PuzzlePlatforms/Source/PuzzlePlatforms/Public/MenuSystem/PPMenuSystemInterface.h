@@ -29,7 +29,9 @@ public:
 	/* This is interface function*/
 	virtual void Host_Interface() = 0;
 
-	virtual void Join_Interface(const FString& Adress) = 0;
+	virtual void OK_Interface() = 0;
+
+	virtual void Join_Interface() = 0;
 
 	virtual void ExitGame_Interface() = 0;
 

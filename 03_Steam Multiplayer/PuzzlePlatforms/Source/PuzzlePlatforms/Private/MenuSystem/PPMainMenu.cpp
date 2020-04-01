@@ -6,6 +6,7 @@
 #include "PPGameInstance.h"
 #include "Components/WidgetSwitcher.h"
 #include "Components/EditableTextBox.h"
+#include "Components/PanelWidget.h"
 
 bool UPPMainMenu::Initialize()
 {
@@ -23,8 +24,7 @@ bool UPPMainMenu::Initialize()
 	OK->OnClicked.AddDynamic(this, &UPPMainMenu::OnOkClicked);
 	QuitButton->OnClicked.AddDynamic(this, &UPPMainMenu::OnQuitClicked);
 
-	EnterBox->OnTextChanged.AddDynamic(this, &UPPMainMenu::OnBoxTextChanged);
-
+	
 	return true;
 
 }
@@ -79,6 +79,22 @@ void UPPMainMenu::Hide()
 
 }
 
+
+void UPPMainMenu::AddChildToScrollBox(UWidget* NewChild)
+{
+
+	ScrollBoxWithSessions->AddChild(NewChild);
+
+}
+
+void UPPMainMenu::ClearScrollBoxChildrens()
+{
+
+	ScrollBoxWithSessions->ClearChildren();
+}
+
+
+
 void UPPMainMenu::OnHostClicked()
 {
 	UE_LOG(LogTemp, Warning, TEXT("Host called"))
@@ -96,7 +112,7 @@ void UPPMainMenu::OnOkClicked()
 	if (MenuInterface)
 	{
 		UE_LOG(LogTemp, Warning, TEXT("MenuInterface is valid"));
-		MenuInterface->Join_Interface(IPAdress);
+		MenuInterface->OK_Interface();
 	}
 }
 
@@ -119,11 +135,7 @@ void UPPMainMenu::SetMenuSwitcher(int32 Index)
 	MenuSwitcher->SetActiveWidgetIndex(Index);
 }
 
-void UPPMainMenu::OnBoxTextChanged(const FText& Text)
-{
-	IPAdress = Text.ToString();
 
-}
 
 void UPPMainMenu::OnCancelClicked()
 {
@@ -137,6 +149,9 @@ void UPPMainMenu::OnJoinClicked()
 	if (MenuSwitcher)
 	{
 		SetMenuSwitcher(1);
+
+		MenuInterface->Join_Interface();
+		
 	}
 	else
 	{

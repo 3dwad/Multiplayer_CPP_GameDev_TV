@@ -6,11 +6,12 @@
 #include "Engine/GameInstance.h"
 #include "MenuSystem/PPMenuSystemInterface.h"
 #include "OnlineSubsystem.h"
-#include "OnlineSessionSettings.h"
+#include "Interfaces/OnlineSessionInterface.h"
 #include "PPGameInstance.generated.h"
 
 class UPPMainMenu;
 class IOnlineSubsystem;
+class UPPSessionAdressRow;
 
 
 
@@ -26,7 +27,7 @@ class PUZZLEPLATFORMS_API UPPGameInstance : public UGameInstance , public IPPMen
 public:
 
 
-	UPPGameInstance();	
+	UPPGameInstance(const FObjectInitializer& ObjectInitializer);
 	
 	void Init() override;
 
@@ -35,25 +36,35 @@ public:
 	void Host_Interface() override;
 
 	UFUNCTION(Exec)
-	void Join_Interface(const FString& Adress) override;
+	void Join_Interface() override;
+
+	UFUNCTION(Exec)
+	void OK_Interface() override;
 
 	UFUNCTION()
 	void ExitGame_Interface() override;
 
 	UFUNCTION(Exec, BlueprintCallable)
 	void LoadMenuWidget();
-
-	UFUNCTION()
+	
 	void SessionCreated(FName SessionName, bool Succes);
-
-	UFUNCTION()
+	
 	void SessionIsOver(FName SessionName, bool Succes);
 
 	UFUNCTION()
 	void CreateSession();
+	
+	void SessionFindComplete(bool Succes);
+
+	UFUNCTION(Exec)
+	void CreateSessionRowWidget(FText SessionName, uint32 Index);
 
 	UFUNCTION()
-	void SessionFindComplete(bool Succes);
+	void SetSelectedIndex(uint32 InIndex);
+	
+	void OnJoinSessionComplete(FName SessionName, EOnJoinSessionCompleteResult::Type Result);
+
+
 
 
 protected:
@@ -61,6 +72,9 @@ protected:
 	//	Create pointer on class reference
 	UPROPERTY()
 	TSubclassOf<UPPMainMenu> MainMenuClass;
+
+	UPROPERTY()
+	TSubclassOf<UPPSessionAdressRow> SessionAdressClass;
 	
 	//	Pointer to OnlineSystem interface
 	IOnlineSubsystem* PPOnlineSubsystem;
@@ -68,13 +82,20 @@ protected:
 	//	SharedPointer to SessioInterface
 	IOnlineSessionPtr SessionInterface;
 
-	// New shared pointer
+	// Shared pointer to SearchSession
 	TSharedPtr<FOnlineSessionSearch> SessionSerchPtr;
 
 		
 
 private:
 
-	UPPMainMenu* MainMenu;
+	// Pointer to MainMenuWidget
+	UPPMainMenu* MainMenuWidgaet;
+
+	// Pointer to SessionRow widget
+	UPPSessionAdressRow* SessionAdressWidget;
+
+	uint32 SelectedIndex;
+		
 
 };
