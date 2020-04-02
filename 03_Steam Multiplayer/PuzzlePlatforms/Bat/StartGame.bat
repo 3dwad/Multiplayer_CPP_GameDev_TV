@@ -1,1 +1,1 @@
-"D:\Epic Games\UE_4.24\Engine\Binaries\Win64\UE4Editor.exe" "D:\KrakenRep\Multiplayer_CPP_GameDev_TV\03_Steam Multiplayer\PuzzlePlatforms\PuzzlePlatforms.uproject" -game -log -WINDOWED -ResX=800 -ResY=450 -WinX=200 -WinY=200
+"D:\Epic Games\UE_4.24\Engine\Binaries\Win64\UE4Editor.exe" "D:\KrakenRep\Multiplayer_CPP_GameDev_TV\03_Steam Multiplayer\PuzzlePlatforms\PuzzlePlatforms.uproject" -game -log -WINDOWED -ResX=800 -ResY=450 -WinX=200 -WinY=200 -nosteam

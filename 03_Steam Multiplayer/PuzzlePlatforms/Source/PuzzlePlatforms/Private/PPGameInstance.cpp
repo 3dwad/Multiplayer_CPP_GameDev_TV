@@ -122,13 +122,13 @@ void UPPGameInstance::CreateSession()
 	SessionSettings.bUsesPresence = true;
 
 	/* If steam enabled run internet session with lobby. Otherwise run LAN session*/
-	if (PPOnlineSubsystem->GetSubsystemName()=="STEAM")
-	{
-		SessionSettings.bIsLANMatch = false;
+	if (PPOnlineSubsystem->GetSubsystemName()=="NULL")
+	{		
+		SessionSettings.bIsLANMatch = true;
 	}
 	else
 	{
-		SessionSettings.bIsLANMatch = true;
+		SessionSettings.bIsLANMatch = false;
 	}
 	
 	if (SessionInterface)
@@ -262,6 +262,7 @@ void UPPGameInstance::Join_Interface()
 	{
 		SessionSerchPtr->MaxSearchResults = 100;			
 		SessionSerchPtr->QuerySettings.Set(SEARCH_PRESENCE, true, EOnlineComparisonOp::Equals);
+		
 
 
 		//	Convert Share pointer to share reference

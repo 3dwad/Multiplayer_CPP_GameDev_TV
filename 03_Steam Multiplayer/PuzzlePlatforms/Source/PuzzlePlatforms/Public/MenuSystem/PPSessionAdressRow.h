@@ -41,7 +41,10 @@ public:
 		UButton* SessionButton;
 
 	UPROPERTY(meta = (BindWidget))
-		UTextBlock* SessionName;
+		UTextBlock* HostName;
+
+	UPROPERTY(meta = (BindWidget))
+		UTextBlock* ServerName;
 
 	UPROPERTY(meta = (BindWidget))
 		UTextBlock* PlayerCount;

@@ -33,14 +33,15 @@ void UPPSessionAdressRow::Setup(UPPGameInstance* InGameInstance, FString InSessi
 	Data.CurrentPlayers = InCurentPlayers;
 	Data.MaxPlayers = InMaxPlayers;
 
-	FText FullSessionName = FText::FromString(InHostName + "--" + InSessionName);
-	SessionName->SetText(FullSessionName);
+	FText HostNameText = FText::FromString(InHostName);
+	HostName->SetText(HostNameText);
 	SessionIndex = InIndex;
 	PPGameInstance = InGameInstance;
 
-	int32 CurPl = InCurentPlayers;
-	int32 MaxPl = InMaxPlayers;
-	FString PlayerCountStr = FString::FromInt(CurPl) + "/" + FString::FromInt(MaxPl);
+	FText ServerNameText = FText::FromString(InSessionName);
+	ServerName->SetText(ServerNameText);
+		
+	FString PlayerCountStr = FString::Printf(TEXT("%d/%d"), InCurentPlayers, InMaxPlayers);
 	
 	PlayerCount->SetText(FText::FromString(PlayerCountStr));
 }
