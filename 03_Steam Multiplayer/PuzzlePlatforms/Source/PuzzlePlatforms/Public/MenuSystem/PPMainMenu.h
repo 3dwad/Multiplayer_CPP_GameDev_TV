@@ -64,6 +64,7 @@ public:
 
 	void ClearScrollBoxChildrens();
 
+	void ResetServerRowsSelected();
 	
 
 protected:
@@ -85,6 +86,8 @@ protected:
 
 	UFUNCTION()
 	void SetMenuSwitcher(int32 Index);
+
+	
 	
 	
 

@@ -11,8 +11,23 @@ class UTextBlock;
 class UPPGameInstance;
 
 /**
- * 
+ *
  */
+
+/* Create new structure with ServerData*/
+USTRUCT()
+struct FServerData
+{
+	GENERATED_BODY()
+
+	FString Name;
+	FString HostName;
+	uint16 CurrentPlayers;
+	uint16 MaxPlayers;
+	
+};
+
+
 UCLASS()
 class PUZZLEPLATFORMS_API UPPSessionAdressRow : public UUserWidget
 {
@@ -23,20 +38,28 @@ public:
 	bool Initialize() override;
 
 	UPROPERTY(meta = (BindWidget))
-	UButton* SessionButton;
+		UButton* SessionButton;
 
 	UPROPERTY(meta = (BindWidget))
-	UTextBlock* SessionName;
+		UTextBlock* SessionName;
+
+	UPROPERTY(meta = (BindWidget))
+		UTextBlock* PlayerCount;
+
 
 	uint32 SessionIndex;
 
-	UPROPERTY()
+	UPROPERTY(BlueprintReadOnly)
+		bool isSelected = false;
+
+	FServerData Data;
+
 	UPPGameInstance* PPGameInstance;
 
 	UFUNCTION()
-	void Setup(UPPGameInstance* InGameInstance, FText InSessionName, uint32 InIndex);
+		void Setup(UPPGameInstance* InGameInstance, FString InSessionName, uint32 InIndex, FString InHostName, uint16 InMaxPlayers, uint16 InCurentPlayers);
 
 	UFUNCTION()
-	void ButtonClicked();
-	
+		void ButtonClicked();
+
 };

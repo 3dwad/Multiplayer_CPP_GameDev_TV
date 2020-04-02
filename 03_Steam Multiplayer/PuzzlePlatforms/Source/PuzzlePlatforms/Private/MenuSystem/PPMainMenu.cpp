@@ -7,6 +7,7 @@
 #include "Components/WidgetSwitcher.h"
 #include "Components/EditableTextBox.h"
 #include "Components/PanelWidget.h"
+#include "MenuSystem/PPSessionAdressRow.h"
 
 bool UPPMainMenu::Initialize()
 {
@@ -136,6 +137,21 @@ void UPPMainMenu::SetMenuSwitcher(int32 Index)
 }
 
 
+
+void UPPMainMenu::ResetServerRowsSelected()
+{
+	TArray<UWidget*> AllRows = ScrollBoxWithSessions->GetAllChildren();
+
+	for (UWidget* CurrentRow : AllRows)
+	{
+		
+		UPPSessionAdressRow* RowAfterCast = Cast<UPPSessionAdressRow>(CurrentRow);
+		if (RowAfterCast)
+		{
+			RowAfterCast->isSelected = false;
+		}
+	}
+}
 
 void UPPMainMenu::OnCancelClicked()
 {

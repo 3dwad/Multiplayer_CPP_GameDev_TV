@@ -5,6 +5,7 @@
 #include "Components/Button.h"
 #include "Components/TextBlock.h"
 #include "PPGameInstance.h"
+#include "MenuSystem/PPMainMenu.h"
 
 
 bool UPPSessionAdressRow::Initialize()
@@ -24,17 +25,31 @@ bool UPPSessionAdressRow::Initialize()
 
 }
 
-void UPPSessionAdressRow::Setup(UPPGameInstance* InGameInstance, FText InSessionName, uint32 InIndex)
+void UPPSessionAdressRow::Setup(UPPGameInstance* InGameInstance, FString InSessionName, uint32 InIndex, FString InHostName, uint16 InMaxPlayers, uint16 InCurentPlayers)
 {
+	/* Fill struct*/
+	Data.Name = InSessionName;
+	Data.HostName = InHostName;	
+	Data.CurrentPlayers = InCurentPlayers;
+	Data.MaxPlayers = InMaxPlayers;
 
-	PPGameInstance = InGameInstance;
-	SessionName->SetText(InSessionName);
+	FText FullSessionName = FText::FromString(InHostName + "--" + InSessionName);
+	SessionName->SetText(FullSessionName);
 	SessionIndex = InIndex;
+	PPGameInstance = InGameInstance;
 
+	int32 CurPl = InCurentPlayers;
+	int32 MaxPl = InMaxPlayers;
+	FString PlayerCountStr = FString::FromInt(CurPl) + "/" + FString::FromInt(MaxPl);
+	
+	PlayerCount->SetText(FText::FromString(PlayerCountStr));
 }
 
 void UPPSessionAdressRow::ButtonClicked()
 {
-	PPGameInstance->SetSelectedIndex(SessionIndex);	
+
+	PPGameInstance->MainMenuWidgaet->ResetServerRowsSelected();
+	isSelected = true;
+	PPGameInstance->SetSelectedIndex(SessionIndex);
 
 }

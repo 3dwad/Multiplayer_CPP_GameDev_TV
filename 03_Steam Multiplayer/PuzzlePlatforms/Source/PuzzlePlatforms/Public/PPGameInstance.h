@@ -28,6 +28,12 @@ public:
 
 
 	UPPGameInstance(const FObjectInitializer& ObjectInitializer);
+
+	// Pointer to MainMenuWidget
+	UPPMainMenu* MainMenuWidgaet;
+
+	UPROPERTY(EditDefaultsOnly, Category = "SessionSettings")
+	int32 MaxPlayersInSession = 5;
 	
 	void Init() override;
 
@@ -57,12 +63,14 @@ public:
 	void SessionFindComplete(bool Succes);
 
 	UFUNCTION(Exec)
-	void CreateSessionRowWidget(FText SessionName, uint32 Index);
+	void CreateSessionRowWidget(FString InSessionName, uint32 InIndex, FString InHostName, uint16 InMaxPlayers, uint16 InCurentPlayers);
 
 	UFUNCTION()
 	void SetSelectedIndex(uint32 InIndex);
 	
 	void OnJoinSessionComplete(FName SessionName, EOnJoinSessionCompleteResult::Type Result);
+
+	
 
 
 
@@ -89,8 +97,7 @@ protected:
 
 private:
 
-	// Pointer to MainMenuWidget
-	UPPMainMenu* MainMenuWidgaet;
+	
 
 	// Pointer to SessionRow widget
 	UPPSessionAdressRow* SessionAdressWidget;

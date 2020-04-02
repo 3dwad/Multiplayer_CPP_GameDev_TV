@@ -117,10 +117,19 @@ void UPPGameInstance::CreateSession()
 {
 	/* Place to setup settings for Session*/
 	FOnlineSessionSettings SessionSettings;
-	SessionSettings.bIsLANMatch = false;
-	SessionSettings.NumPublicConnections = 2;
+	SessionSettings.NumPublicConnections = MaxPlayersInSession;
 	SessionSettings.bShouldAdvertise = true;
 	SessionSettings.bUsesPresence = true;
+
+	/* If steam enabled run internet session with lobby. Otherwise run LAN session*/
+	if (PPOnlineSubsystem->GetSubsystemName()=="STEAM")
+	{
+		SessionSettings.bIsLANMatch = false;
+	}
+	else
+	{
+		SessionSettings.bIsLANMatch = true;
+	}
 	
 	if (SessionInterface)
 	{		
@@ -148,11 +157,14 @@ void UPPGameInstance::SessionFindComplete(bool Succes)
 			uint32 I = Index;
 			UE_LOG(LogTemp, Warning, TEXT("Found session: %s"), *CurrentElement.GetSessionIdStr());
 
-			FText SessionName = FText::FromString(CurrentElement.GetSessionIdStr());
-			CreateSessionRowWidget(SessionName,I);
-			
-		}						
-		
+			/*Get info for ServerData struct*/
+			FString SessionName = SESSION_NAME.ToString();
+			FString HostName = CurrentElement.Session.OwningUserName;
+			uint16 MaxPlayers = MaxPlayersInSession;
+			uint16 CurrentPlayers = MaxPlayersInSession - CurrentElement.Session.NumOpenPublicConnections;	
+
+			CreateSessionRowWidget(SessionName,I,HostName,MaxPlayers,CurrentPlayers);			
+		}
 	}
 	else
 	{
@@ -160,13 +172,14 @@ void UPPGameInstance::SessionFindComplete(bool Succes)
 	}
 }
 
-void UPPGameInstance::CreateSessionRowWidget(FText SessionName, uint32 Index)
+void UPPGameInstance::CreateSessionRowWidget(FString InSessionName, uint32 InIndex, FString InHostName, uint16 InMaxPlayers, uint16 InCurentPlayers)
 {
 	if (SessionAdressClass)
 	{
 
 		SessionAdressWidget = CreateWidget<UPPSessionAdressRow>(this, SessionAdressClass);
-		SessionAdressWidget->Setup(this, SessionName, Index);		
+
+		SessionAdressWidget->Setup(this, InSessionName, InIndex, InHostName,InMaxPlayers,InCurentPlayers);		
 		MainMenuWidgaet->AddChildToScrollBox(SessionAdressWidget);
 		
 	}
@@ -247,7 +260,7 @@ void UPPGameInstance::Join_Interface()
 	//	Necessary check to valid 
 	if (SessionSerchPtr)
 	{
-		SessionSerchPtr->MaxSearchResults = 100;
+		SessionSerchPtr->MaxSearchResults = 100;			
 		SessionSerchPtr->QuerySettings.Set(SEARCH_PRESENCE, true, EOnlineComparisonOp::Equals);
 
 
