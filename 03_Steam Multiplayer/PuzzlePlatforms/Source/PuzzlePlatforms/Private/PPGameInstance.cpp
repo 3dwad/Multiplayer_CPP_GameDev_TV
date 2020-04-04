@@ -12,11 +12,12 @@
 #include "PPPlatformTrigger.h"
 #include "OnlineSubsystem.h"
 #include "OnlineSessionSettings.h"
+#include "GameFramework/PlayerState.h"
 
 
 
-const static FName SESSION_NAME = TEXT("MyAwesomeSession");
-
+const static FName SESSION_NAME = TEXT("GameSession");
+const static FName SERVER_NAME_KEY = TEXT("ServerNameKey");
 
 
 UPPGameInstance::UPPGameInstance(const FObjectInitializer& ObjectInitializer)
@@ -91,11 +92,10 @@ void UPPGameInstance::SessionCreated(FName SessionName, bool Succes)
 	{
 		UE_LOG(LogTemp, Warning, TEXT("Session %s was create succeful"), *SessionName.ToString())
 
-		GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Green, "Hosting!");
-
-		GetWorld()->ServerTravel("/Game/ThirdPersonCPP/Maps/MainMap?listen");
-
+		GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Green, "Hosting!");		
+				
 		MainMenuWidgaet->Hide();
+		GetWorld()->ServerTravel("/Game/ThirdPersonCPP/Maps/Lobby?listen");
 	}
 	else
 	{
@@ -117,9 +117,10 @@ void UPPGameInstance::CreateSession()
 {
 	/* Place to setup settings for Session*/
 	FOnlineSessionSettings SessionSettings;
-	SessionSettings.NumPublicConnections = MaxPlayersInSession;
+	SessionSettings.NumPublicConnections = MaxPlayersInSession;	
 	SessionSettings.bShouldAdvertise = true;
 	SessionSettings.bUsesPresence = true;
+	SessionSettings.Set(SERVER_NAME_KEY, ServerName, EOnlineDataAdvertisementType::ViaOnlineServiceAndPing);
 
 	/* If steam enabled run internet session with lobby. Otherwise run LAN session*/
 	if (PPOnlineSubsystem->GetSubsystemName()=="NULL")
@@ -134,6 +135,18 @@ void UPPGameInstance::CreateSession()
 	if (SessionInterface)
 	{		
 		SessionInterface->CreateSession(0, SESSION_NAME, SessionSettings);
+	}
+
+}
+
+void UPPGameInstance::StartSession()
+{
+
+	if(SessionInterface->StartSession(SESSION_NAME))
+	{
+
+		UE_LOG(LogTemp, Warning, TEXT("Session succeful started"));
+
 	}
 
 }
@@ -158,12 +171,18 @@ void UPPGameInstance::SessionFindComplete(bool Succes)
 			UE_LOG(LogTemp, Warning, TEXT("Found session: %s"), *CurrentElement.GetSessionIdStr());
 
 			/*Get info for ServerData struct*/
-			FString SessionName = SESSION_NAME.ToString();
-			FString HostName = CurrentElement.Session.OwningUserName;
-			uint16 MaxPlayers = MaxPlayersInSession;
-			uint16 CurrentPlayers = MaxPlayersInSession - CurrentElement.Session.NumOpenPublicConnections;	
-
-			CreateSessionRowWidget(SessionName,I,HostName,MaxPlayers,CurrentPlayers);			
+			FString ServerNameStr;;
+			if (CurrentElement.Session.SessionSettings.Get(SERVER_NAME_KEY, ServerNameStr))
+			{
+				FString HostName = CurrentElement.Session.OwningUserName;
+				uint16 MaxPlayers = MaxPlayersInSession;
+				uint16 CurrentPlayers = MaxPlayersInSession - CurrentElement.Session.NumOpenPublicConnections;
+				CreateSessionRowWidget(ServerNameStr, I, HostName, MaxPlayers, CurrentPlayers);			
+			}
+			else
+			{
+				UE_LOG(LogTemp, Error, TEXT("Data nor found"))
+			}		
 		}
 	}
 	else
@@ -226,8 +245,10 @@ void UPPGameInstance::OnJoinSessionComplete(FName SessionName, EOnJoinSessionCom
 }
 
 /* Find session per name and destroy if founded. Create Session*/
-void UPPGameInstance::Host_Interface()
+void UPPGameInstance::Host_Interface(FString Name)
 {
+
+	ServerName = Name;
 
 	if (SessionInterface->GetNamedSession(SESSION_NAME))
 	{
@@ -245,17 +266,13 @@ void UPPGameInstance::Host_Interface()
 
 }
 
+
+
 void UPPGameInstance::Join_Interface()
 {
 	// Fill shared pointer to a new object
 		
-	SessionSerchPtr = MakeShareable(new FOnlineSessionSearch());
-	
-	/* Debug
-	int32 SerchCount = SessionSerchPtr.GetSharedReferenceCount();
-
-	UE_LOG(LogTemp, Warning, TEXT("searching sessions is: %s"), *FString::FromInt(SerchCount));
-	*/
+	SessionSerchPtr = MakeShareable(new FOnlineSessionSearch());	
 
 	//	Necessary check to valid 
 	if (SessionSerchPtr)

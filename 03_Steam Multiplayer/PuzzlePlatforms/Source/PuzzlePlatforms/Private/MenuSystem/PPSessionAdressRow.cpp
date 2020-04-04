@@ -39,6 +39,9 @@ void UPPSessionAdressRow::Setup(UPPGameInstance* InGameInstance, FString InSessi
 	PPGameInstance = InGameInstance;
 
 	FText ServerNameText = FText::FromString(InSessionName);
+
+	UE_LOG(LogTemp, Error, TEXT("Server name is: %s"),*InSessionName);
+
 	ServerName->SetText(ServerNameText);
 		
 	FString PlayerCountStr = FString::Printf(TEXT("%d/%d"), InCurentPlayers, InMaxPlayers);

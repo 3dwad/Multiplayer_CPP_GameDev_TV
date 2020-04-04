@@ -34,12 +34,15 @@ public:
 
 	UPROPERTY(EditDefaultsOnly, Category = "SessionSettings")
 	int32 MaxPlayersInSession = 5;
+
+
+	
 	
 	void Init() override;
 
 	/* Exec do available to call from console*/
 	UFUNCTION(Exec)
-	void Host_Interface() override;
+	void Host_Interface(FString Name) override;
 
 	UFUNCTION(Exec)
 	void Join_Interface() override;
@@ -48,7 +51,7 @@ public:
 	void OK_Interface() override;
 
 	UFUNCTION()
-	void ExitGame_Interface() override;
+	void ExitGame_Interface() override;		
 
 	UFUNCTION(Exec, BlueprintCallable)
 	void LoadMenuWidget();
@@ -59,6 +62,9 @@ public:
 
 	UFUNCTION()
 	void CreateSession();
+
+	UFUNCTION()
+	void StartSession();
 	
 	void SessionFindComplete(bool Succes);
 
@@ -69,11 +75,7 @@ public:
 	void SetSelectedIndex(uint32 InIndex);
 	
 	void OnJoinSessionComplete(FName SessionName, EOnJoinSessionCompleteResult::Type Result);
-
 	
-
-
-
 
 protected:
 
@@ -91,18 +93,16 @@ protected:
 	IOnlineSessionPtr SessionInterface;
 
 	// Shared pointer to SearchSession
-	TSharedPtr<FOnlineSessionSearch> SessionSerchPtr;
-
-		
+	TSharedPtr<FOnlineSessionSearch> SessionSerchPtr;		
 
 private:
-
 	
 
 	// Pointer to SessionRow widget
-	UPPSessionAdressRow* SessionAdressWidget;
+	UPPSessionAdressRow* SessionAdressWidget;	
 
 	uint32 SelectedIndex;
 		
+	FString ServerName;
 
 };

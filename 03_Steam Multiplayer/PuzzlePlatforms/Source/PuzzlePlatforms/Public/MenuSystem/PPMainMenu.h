@@ -11,6 +11,7 @@
 class UButton;
 class UWidgetSwitcher;
 class UPanelWidget;
+class UEditableText;
 
 
 /**
@@ -40,16 +41,21 @@ public:
 	
 	UPROPERTY(meta = (BindWidget))
 	UButton* QuitButton;
+
+	UPROPERTY(meta = (BindWidget))
+	UButton* HostToMain;
+
+	UPROPERTY(meta = (BindWidget))
+	UButton* HostToCreate;
+
+	UPROPERTY(meta = (BindWidget))
+	UEditableText* ServerName;
 	
 	UPROPERTY(meta = (BindWidget))
 	UPanelWidget* ScrollBoxWithSessions;
 
 	UPROPERTY(meta = (BindWidget))
 	UWidgetSwitcher* MenuSwitcher;
-
-	
-	
-
 
 
 	bool Initialize() override;	
@@ -64,7 +70,7 @@ public:
 
 	void ClearScrollBoxChildrens();
 
-	void ResetServerRowsSelected();
+	void ResetServerRowsSelected();	
 	
 
 protected:
@@ -87,7 +93,11 @@ protected:
 	UFUNCTION()
 	void SetMenuSwitcher(int32 Index);
 
-	
+	UFUNCTION()
+	void HostToCreateClicked();
+
+	UFUNCTION()
+	void HostToMainClicked();
 	
 	
 

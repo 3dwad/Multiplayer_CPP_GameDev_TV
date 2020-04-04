@@ -5,7 +5,7 @@
 #include "Components/Button.h"
 #include "PPGameInstance.h"
 #include "Components/WidgetSwitcher.h"
-#include "Components/EditableTextBox.h"
+#include "Components/EditableText.h"
 #include "Components/PanelWidget.h"
 #include "MenuSystem/PPSessionAdressRow.h"
 
@@ -24,8 +24,10 @@ bool UPPMainMenu::Initialize()
 	Cancel->OnClicked.AddDynamic(this, &UPPMainMenu::OnCancelClicked);
 	OK->OnClicked.AddDynamic(this, &UPPMainMenu::OnOkClicked);
 	QuitButton->OnClicked.AddDynamic(this, &UPPMainMenu::OnQuitClicked);
+	HostToCreate->OnClicked.AddDynamic(this, &UPPMainMenu::HostToCreateClicked);
+	HostToMain->OnClicked.AddDynamic(this, &UPPMainMenu::HostToMainClicked);
 
-	
+
 	return true;
 
 }
@@ -49,7 +51,7 @@ void UPPMainMenu::Setup()
 			/* Create input data. Set input data settings*/
 
 			FInputModeUIOnly MyInputData;
-			MyInputData.SetLockMouseToViewportBehavior(EMouseLockMode::LockAlways);			
+			MyInputData.SetLockMouseToViewportBehavior(EMouseLockMode::LockAlways);
 
 			/* Set input mode with input data*/
 			PlayerController->SetInputMode(MyInputData);
@@ -64,7 +66,7 @@ void UPPMainMenu::Setup()
 
 void UPPMainMenu::Hide()
 {
-	
+
 	APlayerController* PlayerController = GetOwningLocalPlayer()->GetPlayerController(GetWorld());
 
 	if (PlayerController)
@@ -98,13 +100,36 @@ void UPPMainMenu::ClearScrollBoxChildrens()
 
 void UPPMainMenu::OnHostClicked()
 {
+	SetMenuSwitcher(2);
+}
+
+void UPPMainMenu::HostToCreateClicked()
+{
+
 	UE_LOG(LogTemp, Warning, TEXT("Host called"))
 
-	//	Thaw we can call function from interface
-	if (MenuInterface)
-	{		
-		MenuInterface->Host_Interface();		
-	}
+		//	Thaw we can call function from interface
+		if (MenuInterface)
+		{
+			FString Name = ServerName->GetText().ToString();
+			if (Name.IsEmpty())
+			{
+				ServerName->SetHintText(FText::FromString("Enter name!"));
+			}
+			else
+			{
+				MenuInterface->Host_Interface(Name);
+			}			
+		}
+
+
+
+
+}
+
+void UPPMainMenu::HostToMainClicked()
+{
+	SetMenuSwitcher(0);
 }
 
 void UPPMainMenu::OnOkClicked()
@@ -133,7 +158,7 @@ void UPPMainMenu::SetMenuSwitcher(int32 Index)
 
 	UE_LOG(LogTemp, Warning, TEXT("SetMenuSwitcher() is called"))
 
-	MenuSwitcher->SetActiveWidgetIndex(Index);
+		MenuSwitcher->SetActiveWidgetIndex(Index);
 }
 
 
@@ -144,7 +169,7 @@ void UPPMainMenu::ResetServerRowsSelected()
 
 	for (UWidget* CurrentRow : AllRows)
 	{
-		
+
 		UPPSessionAdressRow* RowAfterCast = Cast<UPPSessionAdressRow>(CurrentRow);
 		if (RowAfterCast)
 		{
@@ -152,6 +177,8 @@ void UPPMainMenu::ResetServerRowsSelected()
 		}
 	}
 }
+
+
 
 void UPPMainMenu::OnCancelClicked()
 {
@@ -162,17 +189,17 @@ void UPPMainMenu::OnJoinClicked()
 {
 	UE_LOG(LogTemp, Warning, TEXT("Button clicked"))
 
-	if (MenuSwitcher)
-	{
-		SetMenuSwitcher(1);
+		if (MenuSwitcher)
+		{
+			SetMenuSwitcher(1);
 
-		MenuInterface->Join_Interface();
-		
-	}
-	else
-	{
-		UE_LOG(LogTemp, Warning, TEXT("MenuSwitcher is not valid!"))
-	}
+			MenuInterface->Join_Interface();
+
+		}
+		else
+		{
+			UE_LOG(LogTemp, Warning, TEXT("MenuSwitcher is not valid!"))
+		}
 }
 
 

@@ -27,7 +27,7 @@ public:
 
 	/* That we can create pure virtual function. Its mean we can not create implementation. Implementation will be in inherited classes
 	/* This is interface function*/
-	virtual void Host_Interface() = 0;
+	virtual void Host_Interface(FString Name) = 0;
 
 	virtual void OK_Interface() = 0;
 
