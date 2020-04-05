@@ -35,6 +35,10 @@
 				"Mac",
 				"Linux"
 			]
+		},
+		{
+			"Name": "SteamController",
+			"Enabled": true
 		}
 	]
 }
