@@ -62,9 +62,15 @@ public:
 	// Called to bind functionality to input
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 
+	
 	void MoveForward(float InValue);
-
 	void MoveRight(float InValue);
+
+	UFUNCTION(Server, Reliable, WithValidation)
+	void Server_MoveForward(float InValue);
+		
+	UFUNCTION(Server, Reliable, WithValidation)
+	void Server_MoveRight(float InValue);
 
 
 private:

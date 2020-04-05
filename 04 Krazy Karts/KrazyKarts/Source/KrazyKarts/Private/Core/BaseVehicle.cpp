@@ -10,6 +10,7 @@
 #include "Camera/CameraComponent.h"
 #include "Engine/Engine.h"
 #include "Engine/World.h"
+#include "DrawDebugHelpers.h"
 
 
 
@@ -40,6 +41,23 @@ void ABaseVehicle::BeginPlay()
 
 }
 
+FString GetEnumText(ENetRole InRole)
+{
+	switch (InRole)
+	{
+	case ROLE_None:
+		return "None";
+	case ROLE_SimulatedProxy:
+		return "SimulatedProxy";
+	case ROLE_AutonomousProxy:
+		return "AutonomousProxy";
+	case ROLE_Authority:
+		return "Authority";
+	default:
+		return "Error";
+	}
+}
+
 // Called every frame
 void ABaseVehicle::Tick(float DeltaTime)
 {
@@ -56,8 +74,10 @@ void ABaseVehicle::Tick(float DeltaTime)
 	
 	ApplyRotation(DeltaTime);
 
-	/* dX = V * dT */
+	
 	UpdateLocationFromVelocity(DeltaTime);	
+
+	DrawDebugString(GetWorld(), FVector(0, 0, 200), GetEnumText(GetLocalRole()), this, FColor::Green,DeltaTime);
 }
 
 FVector ABaseVehicle::GetAirResistance()
@@ -113,23 +133,40 @@ void ABaseVehicle::SetupPlayerInputComponent(UInputComponent* PlayerInputCompone
 
 	PlayerInputComponent->BindAxis("MoveForward", this, &ABaseVehicle::MoveForward);
 	PlayerInputComponent->BindAxis("MoveRight", this, &ABaseVehicle::MoveRight);
-
-
-
 }
 
 void ABaseVehicle::MoveForward(float InValue)
 {
+	Throttle = InValue;
+	Server_MoveForward(InValue);
 
 	GEngine->AddOnScreenDebugMessage(-1, 0.f, FColor::Green, "Forward value is:" + FString::SanitizeFloat(InValue));
+}
 
-	Throttle = InValue;
+
+void ABaseVehicle::Server_MoveForward_Implementation(float InValue)
+{		
+		Throttle = InValue;	
+}
+
+bool ABaseVehicle::Server_MoveForward_Validate(float InValue)
+{
+	return FMath::Abs(InValue) <= 1;	
+	
 }
 
 void ABaseVehicle::MoveRight(float InValue)
 {
-
 	SteeringThrow = InValue;
-
+	Server_MoveRight(InValue);
 }
 
+void ABaseVehicle::Server_MoveRight_Implementation(float InValue)
+{
+	SteeringThrow = InValue;
+}
+
+bool ABaseVehicle::Server_MoveRight_Validate(float InValue)
+{
+	return FMath::Abs(InValue) <= 1;
+}
