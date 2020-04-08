@@ -11,6 +11,7 @@
 #include "Engine/Engine.h"
 #include "Engine/World.h"
 #include "DrawDebugHelpers.h"
+#include "Net/UnrealNetwork.h"
 
 
 
@@ -19,6 +20,8 @@ ABaseVehicle::ABaseVehicle()
 {
 	// Set this pawn to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = true;
+	/* Enable replicated*/
+	bReplicates = true;
 
 	CollisionBoxComponent = CreateDefaultSubobject<UBoxComponent>(TEXT("CollisionBox"));
 	CollisionBoxComponent->SetupAttachment(RootComponent);
@@ -39,6 +42,19 @@ void ABaseVehicle::BeginPlay()
 {
 	Super::BeginPlay();
 
+	if (HasAuthority())
+	{
+		NetUpdateFrequency = 1;
+	}
+}
+
+/* For each variable we must create macros in this function*/
+void ABaseVehicle::GetLifetimeReplicatedProps(TArray< FLifetimeProperty >& OutLifetimeProps) const
+{
+	/* IMPORTANT! Super must be called, otherwise we will be marked as simulated proxy*/
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+
+	DOREPLIFETIME(ABaseVehicle, ServerState);
 }
 
 FString GetEnumText(ENetRole InRole)
@@ -61,23 +77,90 @@ FString GetEnumText(ENetRole InRole)
 // Called every frame
 void ABaseVehicle::Tick(float DeltaTime)
 {
-	Super::Tick(DeltaTime);	
+	Super::Tick(DeltaTime);
 
-	Force = GetActorForwardVector() * MaxDrivingForce * Throttle;
+	if (GetLocalRole()==ROLE_AutonomousProxy)
+	{
+		FVehicleMove VehicleMove = CreateMove(DeltaTime);
+		SimulateMove(VehicleMove);
+
+		UnacknowledgedMoves.Add(VehicleMove);
+		Server_SendMove(VehicleMove);
+	}
+
+	/* We are the server and in control of the pawn*/
+	if (GetLocalRole()==ROLE_Authority && GetRemoteRole()==ROLE_SimulatedProxy)
+	{
+		FVehicleMove VehicleMove = CreateMove(DeltaTime);
+		Server_SendMove(VehicleMove);
+	}
+
+	if (GetLocalRole()==ROLE_SimulatedProxy)
+	{
+		SimulateMove(ServerState.LastMove);
+	}
+
+	DrawDebugString(GetWorld(), FVector(0, 0, 200), GetEnumText(GetLocalRole()), this, FColor::Green, DeltaTime);
+
+}
+
+FVehicleMove ABaseVehicle::CreateMove(float InDeltaTime)
+{
+	FVehicleMove VehicleMove;
+	VehicleMove.DeltaTime = InDeltaTime;
+	VehicleMove.SteeringThrow = SteeringThrow;
+	VehicleMove.Throttle = Throttle;
+	VehicleMove.Time = GetWorld()->TimeSeconds;
+
+	return VehicleMove;
+}
+
+void ABaseVehicle::OnRep_ServerState()
+{
+	UE_LOG(LogTemp, Warning, TEXT("Update from server"));
+
+	SetActorTransform(ServerState.Transform);
+	Velocity = ServerState.Velocity;
+
+	ClearUnacknowledgedMoves(ServerState.LastMove);
+
+	for (const FVehicleMove& CurrentMove : UnacknowledgedMoves)
+	{
+
+		SimulateMove(CurrentMove);
+	}
+}
+
+void ABaseVehicle::ClearUnacknowledgedMoves(FVehicleMove InLastMove)
+{
+
+	TArray<FVehicleMove> NewMoves;
+
+	for (const FVehicleMove& CurrentMove : UnacknowledgedMoves)
+	{
+		if (CurrentMove.Time > InLastMove.Time)
+		{
+			NewMoves.Add(CurrentMove);
+		}
+	}
+	UnacknowledgedMoves = NewMoves;
+}
+
+
+void ABaseVehicle::SimulateMove(const FVehicleMove InMove)
+{
+	Force = GetActorForwardVector() * MaxDrivingForce * InMove.Throttle;
 
 	Force += GetAirResistance();
 	Force += GetRollingResistance();
 
 	FVector Acceleration = Force / Mass;
 
-	Velocity = Velocity + Acceleration * DeltaTime;
-	
-	ApplyRotation(DeltaTime);
+	Velocity = Velocity + Acceleration * InMove.DeltaTime;
 
-	
-	UpdateLocationFromVelocity(DeltaTime);	
+	ApplyRotation(InMove.DeltaTime,InMove.SteeringThrow);
 
-	DrawDebugString(GetWorld(), FVector(0, 0, 200), GetEnumText(GetLocalRole()), this, FColor::Green,DeltaTime);
+	UpdateLocationFromVelocity(InMove.DeltaTime);
 }
 
 FVector ABaseVehicle::GetAirResistance()
@@ -86,7 +169,7 @@ FVector ABaseVehicle::GetAirResistance()
 
 	GEngine->AddOnScreenDebugMessage(-1, 0.f, FColor::Green, "Velocity value is:" + FString::SanitizeFloat(Speed));
 
-	return Speed * DragCoefficient * - Velocity.GetSafeNormal();	
+	return Speed * DragCoefficient * -Velocity.GetSafeNormal();
 }
 
 FVector ABaseVehicle::GetRollingResistance()
@@ -95,8 +178,10 @@ FVector ABaseVehicle::GetRollingResistance()
 
 	float NormalForce = Mass * GravityStrenght;
 
-	return -Velocity.GetSafeNormal() *RolingResistanceCoefficient * NormalForce;
+	return -Velocity.GetSafeNormal() * RolingResistanceCoefficient * NormalForce;
 }
+
+
 
 void ABaseVehicle::UpdateLocationFromVelocity(float DeltaTime)
 {
@@ -109,17 +194,15 @@ void ABaseVehicle::UpdateLocationFromVelocity(float DeltaTime)
 	{
 		Velocity = FVector::ZeroVector;
 	}
-
 }
 
-void ABaseVehicle::ApplyRotation(float DeltaTime)
+void ABaseVehicle::ApplyRotation(float DeltaTime, float InSteeringThrow)
 {
-	float DeltaLocation = FVector::DotProduct(GetActorForwardVector(),Velocity) * DeltaTime;
+	float DeltaLocation = FVector::DotProduct(GetActorForwardVector(), Velocity) * DeltaTime;
 
-	float RotationAngle = DeltaLocation / MinimumTurningRadius * SteeringThrow;
+	float RotationAngle = DeltaLocation / MinimumTurningRadius * InSteeringThrow;
 
 	FQuat RotationDelta(GetActorUpVector(), RotationAngle);
-
 
 	Velocity = RotationDelta.RotateVector(Velocity);
 
@@ -138,35 +221,24 @@ void ABaseVehicle::SetupPlayerInputComponent(UInputComponent* PlayerInputCompone
 void ABaseVehicle::MoveForward(float InValue)
 {
 	Throttle = InValue;
-	Server_MoveForward(InValue);
-
-	GEngine->AddOnScreenDebugMessage(-1, 0.f, FColor::Green, "Forward value is:" + FString::SanitizeFloat(InValue));
 }
 
 
-void ABaseVehicle::Server_MoveForward_Implementation(float InValue)
-{		
-		Throttle = InValue;	
-}
-
-bool ABaseVehicle::Server_MoveForward_Validate(float InValue)
+void ABaseVehicle::Server_SendMove_Implementation(FVehicleMove InMove)
 {
-	return FMath::Abs(InValue) <= 1;	
-	
+	SimulateMove(InMove);
+
+	ServerState.LastMove = InMove;
+	ServerState.Transform = GetActorTransform();
+	ServerState.Velocity = Velocity;
+}
+
+bool ABaseVehicle::Server_SendMove_Validate(FVehicleMove InMove)
+{
+	return true;
 }
 
 void ABaseVehicle::MoveRight(float InValue)
 {
 	SteeringThrow = InValue;
-	Server_MoveRight(InValue);
-}
-
-void ABaseVehicle::Server_MoveRight_Implementation(float InValue)
-{
-	SteeringThrow = InValue;
-}
-
-bool ABaseVehicle::Server_MoveRight_Validate(float InValue)
-{
-	return FMath::Abs(InValue) <= 1;
 }
