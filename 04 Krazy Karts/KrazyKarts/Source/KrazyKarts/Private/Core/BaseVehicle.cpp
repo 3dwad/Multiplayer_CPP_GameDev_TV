@@ -12,7 +12,8 @@
 #include "Engine/World.h"
 #include "DrawDebugHelpers.h"
 #include "Net/UnrealNetwork.h"
-
+#include "ActorComponents/KKMovementComponent.h"
+#include "ActorComponents/KKReplecationComponent.h"
 
 
 // Sets default values
@@ -35,6 +36,9 @@ ABaseVehicle::ABaseVehicle()
 	CameraComponent = CreateDefaultSubobject<UCameraComponent>(TEXT("Camera"));
 	CameraComponent->SetupAttachment(SpringArmComponent);
 
+	KKMovementComponent = CreateDefaultSubobject<UKKMovementComponent>(TEXT("KKMovementComponent"));
+	KKReplicationComponent = CreateDefaultSubobject<UKKReplecationComponent>(TEXT("KKReplicationComponent"));
+	KKReplicationComponent->SetIsReplicated(true);
 }
 
 // Called when the game starts or when spawned
@@ -48,14 +52,7 @@ void ABaseVehicle::BeginPlay()
 	}
 }
 
-/* For each variable we must create macros in this function*/
-void ABaseVehicle::GetLifetimeReplicatedProps(TArray< FLifetimeProperty >& OutLifetimeProps) const
-{
-	/* IMPORTANT! Super must be called, otherwise we will be marked as simulated proxy*/
-	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 
-	DOREPLIFETIME(ABaseVehicle, ServerState);
-}
 
 FString GetEnumText(ENetRole InRole)
 {
@@ -79,135 +76,10 @@ void ABaseVehicle::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
-	if (GetLocalRole()==ROLE_AutonomousProxy)
-	{
-		FVehicleMove VehicleMove = CreateMove(DeltaTime);
-		SimulateMove(VehicleMove);
-
-		UnacknowledgedMoves.Add(VehicleMove);
-		Server_SendMove(VehicleMove);
-	}
-
-	/* We are the server and in control of the pawn*/
-	if (GetLocalRole()==ROLE_Authority && GetRemoteRole()==ROLE_SimulatedProxy)
-	{
-		FVehicleMove VehicleMove = CreateMove(DeltaTime);
-		Server_SendMove(VehicleMove);
-	}
-
-	if (GetLocalRole()==ROLE_SimulatedProxy)
-	{
-		SimulateMove(ServerState.LastMove);
-	}
-
 	DrawDebugString(GetWorld(), FVector(0, 0, 200), GetEnumText(GetLocalRole()), this, FColor::Green, DeltaTime);
-
-}
-
-FVehicleMove ABaseVehicle::CreateMove(float InDeltaTime)
-{
-	FVehicleMove VehicleMove;
-	VehicleMove.DeltaTime = InDeltaTime;
-	VehicleMove.SteeringThrow = SteeringThrow;
-	VehicleMove.Throttle = Throttle;
-	VehicleMove.Time = GetWorld()->TimeSeconds;
-
-	return VehicleMove;
-}
-
-void ABaseVehicle::OnRep_ServerState()
-{
-	UE_LOG(LogTemp, Warning, TEXT("Update from server"));
-
-	SetActorTransform(ServerState.Transform);
-	Velocity = ServerState.Velocity;
-
-	ClearUnacknowledgedMoves(ServerState.LastMove);
-
-	for (const FVehicleMove& CurrentMove : UnacknowledgedMoves)
-	{
-
-		SimulateMove(CurrentMove);
-	}
-}
-
-void ABaseVehicle::ClearUnacknowledgedMoves(FVehicleMove InLastMove)
-{
-
-	TArray<FVehicleMove> NewMoves;
-
-	for (const FVehicleMove& CurrentMove : UnacknowledgedMoves)
-	{
-		if (CurrentMove.Time > InLastMove.Time)
-		{
-			NewMoves.Add(CurrentMove);
-		}
-	}
-	UnacknowledgedMoves = NewMoves;
 }
 
 
-void ABaseVehicle::SimulateMove(const FVehicleMove InMove)
-{
-	Force = GetActorForwardVector() * MaxDrivingForce * InMove.Throttle;
-
-	Force += GetAirResistance();
-	Force += GetRollingResistance();
-
-	FVector Acceleration = Force / Mass;
-
-	Velocity = Velocity + Acceleration * InMove.DeltaTime;
-
-	ApplyRotation(InMove.DeltaTime,InMove.SteeringThrow);
-
-	UpdateLocationFromVelocity(InMove.DeltaTime);
-}
-
-FVector ABaseVehicle::GetAirResistance()
-{
-	float Speed = Velocity.SizeSquared();
-
-	GEngine->AddOnScreenDebugMessage(-1, 0.f, FColor::Green, "Velocity value is:" + FString::SanitizeFloat(Speed));
-
-	return Speed * DragCoefficient * -Velocity.GetSafeNormal();
-}
-
-FVector ABaseVehicle::GetRollingResistance()
-{
-	float GravityStrenght = -GetWorld()->GetGravityZ() / 100;
-
-	float NormalForce = Mass * GravityStrenght;
-
-	return -Velocity.GetSafeNormal() * RolingResistanceCoefficient * NormalForce;
-}
-
-
-
-void ABaseVehicle::UpdateLocationFromVelocity(float DeltaTime)
-{
-
-	FVector DeltaLocation = Velocity * 100 * DeltaTime;
-	FHitResult Result;
-	AddActorWorldOffset(DeltaLocation, true, &Result);
-
-	if (Result.IsValidBlockingHit())
-	{
-		Velocity = FVector::ZeroVector;
-	}
-}
-
-void ABaseVehicle::ApplyRotation(float DeltaTime, float InSteeringThrow)
-{
-	float DeltaLocation = FVector::DotProduct(GetActorForwardVector(), Velocity) * DeltaTime;
-
-	float RotationAngle = DeltaLocation / MinimumTurningRadius * InSteeringThrow;
-
-	FQuat RotationDelta(GetActorUpVector(), RotationAngle);
-
-	Velocity = RotationDelta.RotateVector(Velocity);
-
-	AddActorWorldRotation(RotationDelta);
-}
 
 // Called to bind functionality to input
 void ABaseVehicle::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
@@ -220,25 +92,11 @@ void ABaseVehicle::SetupPlayerInputComponent(UInputComponent* PlayerInputCompone
 
 void ABaseVehicle::MoveForward(float InValue)
 {
-	Throttle = InValue;
-}
 
-
-void ABaseVehicle::Server_SendMove_Implementation(FVehicleMove InMove)
-{
-	SimulateMove(InMove);
-
-	ServerState.LastMove = InMove;
-	ServerState.Transform = GetActorTransform();
-	ServerState.Velocity = Velocity;
-}
-
-bool ABaseVehicle::Server_SendMove_Validate(FVehicleMove InMove)
-{
-	return true;
+	KKMovementComponent->SetThrottle(InValue);
 }
 
 void ABaseVehicle::MoveRight(float InValue)
 {
-	SteeringThrow = InValue;
+	KKMovementComponent->SetSteeringThrow(InValue);
 }

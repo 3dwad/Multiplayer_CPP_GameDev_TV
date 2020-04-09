@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Pawn.h"
+
 #include "BaseVehicle.generated.h"
 
 
@@ -11,14 +12,16 @@ class USkeletalMeshComponent;
 class USpringArmComponent;
 class UCameraComponent;
 class UBoxComponent;
+class UKKMovementComponent;
+class UKKReplecationComponent;
 
 
 USTRUCT()
-struct FVehicleMove
+struct FKKVehicleMove
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
-	UPROPERTY()
+		UPROPERTY()
 		float Throttle;
 
 	UPROPERTY()
@@ -29,17 +32,16 @@ struct FVehicleMove
 
 	UPROPERTY()
 		float Time;
-
 };
 
 
 USTRUCT()
-struct FVehicleServerState
+struct FKKVehicleServerState
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
-	UPROPERTY()
-		FVehicleMove LastMove;
+		UPROPERTY()
+		FKKVehicleMove LastMove;
 
 	UPROPERTY()
 		FVector Velocity;
@@ -50,7 +52,6 @@ struct FVehicleServerState
 	UPROPERTY()
 		float ServerTime;
 };
-
 
 
 UCLASS()
@@ -72,7 +73,13 @@ public:
 		UCameraComponent* CameraComponent;
 
 	UPROPERTY(VisibleAnywhere, Category = "VehicleSettings")
-		UBoxComponent* CollisionBoxComponent;	
+		UBoxComponent* CollisionBoxComponent;
+
+	UPROPERTY(VisibleAnywhere, Category = "MoveSettings")
+		UKKMovementComponent* KKMovementComponent;
+
+	UPROPERTY(VisibleAnywhere, Category = "ReplicationSettings")
+ 		UKKReplecationComponent* KKReplicationComponent;
 
 protected:
 	// Called when the game starts or when spawned
@@ -82,82 +89,12 @@ public:
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
 
-	UPROPERTY(ReplicatedUsing = OnRep_ServerState)
-	FVehicleServerState ServerState;
-/*
-
-	UPROPERTY(Replicated)
-	FVehicleMove VehicleMove;
-
-*/
-
-	UPROPERTY(Replicated, BlueprintReadOnly)
-		FVector Velocity;
-
-/*
-	UPROPERTY(ReplicatedUsing = OnRep_RepTransform)
-		FTransform ReplicatedTransform;
-*/
-
-	/* This function called when come update from server*/
-	UFUNCTION()
-		void OnRep_ServerState();
-
-	UPROPERTY(BlueprintReadOnly)
-		FVector Force;
-
-	UFUNCTION(BlueprintCallable, BlueprintPure)
-		FVector GetAirResistance();
-	UFUNCTION(BlueprintCallable, BlueprintPure)
-		FVector GetRollingResistance();
-
-
 	// Called to bind functionality to input
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
-
 
 	void MoveForward(float InValue);
 	void MoveRight(float InValue);
 
-	UFUNCTION(Server, Reliable, WithValidation)
-		void Server_SendMove(FVehicleMove InMove);
-
-
 private:
 
-	void SimulateMove(const FVehicleMove InMove);
-
-	FVehicleMove CreateMove(float InDeltaTime);
-
-	void UpdateLocationFromVelocity(float DeltaTime);
-
-	void ApplyRotation(float DeltaTime, float InSteeringThrow);
-
-	void ClearUnacknowledgedMoves(FVehicleMove InLastMove);
-
-	/* In kg*/
-	UPROPERTY(EditDefaultsOnly, Category = "MovementSettings")
-		float Mass = 1000.f;
-
-	/* The force applied to the car when the throttle is fully down (Newton)*/
-	UPROPERTY(EditDefaultsOnly, Category = "MovementSettings")
-		float MaxDrivingForce = 10000.f;
-
-	/* The Drag with air. Higher value mean more drag. kg/meter*/
-	UPROPERTY(EditDefaultsOnly, Category = "MovementSettings")
-		float DragCoefficient = 16.f;
-
-	/* kg/meter*/
-	UPROPERTY(EditDefaultsOnly, Category = "MovementSettings")
-		float RolingResistanceCoefficient = 0.03f;
-
-	UPROPERTY(EditDefaultsOnly, Category = "MovementSettings")
-		float MinimumTurningRadius = 10.f;
-
-		float Throttle;
-		float SteeringThrow;
-
-
-		TArray<FVehicleMove> UnacknowledgedMoves;
-	
 };
