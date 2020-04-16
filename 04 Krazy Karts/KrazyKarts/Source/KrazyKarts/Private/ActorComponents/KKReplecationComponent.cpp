@@ -13,7 +13,7 @@ UKKReplecationComponent::UKKReplecationComponent()
 	PrimaryComponentTick.bCanEverTick = true;
 
 
- 	if (GetOwner()) OwnerActor = Cast<ABaseVehicle>(GetOwner());
+	if (GetOwner()) OwnerActor = Cast<ABaseVehicle>(GetOwner());
 	// ...
 }
 
@@ -24,54 +24,125 @@ void UKKReplecationComponent::BeginPlay()
 	Super::BeginPlay();
 
 	// ...
-	
+
 }
 
 /* For each variable we must create macros in this function*/
-void UKKReplecationComponent::GetLifetimeReplicatedProps(TArray< FLifetimeProperty > & OutLifetimeProps) const
+void UKKReplecationComponent::GetLifetimeReplicatedProps(TArray< FLifetimeProperty >& OutLifetimeProps) const
 {
 	/* IMPORTANT! Super must be called, otherwise we will be marked as simulated proxy*/
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
-		
+
 	DOREPLIFETIME(UKKReplecationComponent, ServerState);
-   }
+}
 
 
- 
+
 // Called every frame
 void UKKReplecationComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
 {
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
 
+	FKKVehicleMove LastMove = OwnerActor->KKMovementComponent->GetLastMove();
+
+
 	if (GetOwnerRole() == ROLE_AutonomousProxy)
 	{
-		FKKVehicleMove VehicleMove = OwnerActor->KKMovementComponent->CreateMove(DeltaTime);
-		OwnerActor->KKMovementComponent->SimulateMove(VehicleMove);
-
-		UnacknowledgedMoves.Add(VehicleMove);
- 		Server_SendMove(VehicleMove);
+		UnacknowledgedMoves.Add(LastMove);
+		Server_SendMove(LastMove);
 	}
 
 	/* We are the server and in control of the pawn*/
-	if (GetOwnerRole() == ROLE_Authority && OwnerActor->GetRemoteRole() == ROLE_SimulatedProxy)
+	if (OwnerActor->GetRemoteRole() == ROLE_SimulatedProxy)
 	{
-		FKKVehicleMove VehicleMove = OwnerActor->KKMovementComponent->CreateMove(DeltaTime);
-		Server_SendMove(VehicleMove);
+		UpdateServerState(LastMove);
 	}
 
 	if (GetOwnerRole() == ROLE_SimulatedProxy)
 	{
-		OwnerActor->KKMovementComponent->SimulateMove(ServerState.LastMove);	
+		ClientTick(DeltaTime);
 	}
 
+	// ...
+}
 
- 	// ...
- }
+void UKKReplecationComponent::ClientTick(float DeltaTime)
+{
+
+	ClientTimeSinceUpdate += DeltaTime;
+
+	if (ClientTimeBetweenLastUpdate < KINDA_SMALL_NUMBER) return;
+
+	FHermiteCubicSpline Spline;
+
+	float LerpRatio = ClientTimeSinceUpdate / ClientTimeBetweenLastUpdate;
+	float SlerpRatio = ClientTimeSinceUpdate / ClientTimeBetweenLastUpdate;
+	float VelocityToDerivative = ClientTimeBetweenLastUpdate * 100;
+
+	CreateSpline(Spline,VelocityToDerivative);	
+	InterpolateLocation(Spline, LerpRatio);
+	InterpolateVelocity(Spline, LerpRatio, VelocityToDerivative);
+	InterpolateRotation(SlerpRatio);
+}
+
+void UKKReplecationComponent::InterpolateVelocity(FHermiteCubicSpline& Spline, float LerpRatio, float VelocityToDerivative)
+{
+	FVector NewDerivative = Spline.InterpolateDerivative(LerpRatio);
+	FVector NewVelocity = NewDerivative / VelocityToDerivative;
+	OwnerActor->KKMovementComponent->SetVelocity(NewVelocity);
+}
+
+void UKKReplecationComponent::InterpolateRotation(float InSlerpRatio)
+{
+	FQuat TargetRotation = ServerState.Transform.GetRotation();
+	FQuat StartRotation = ClientStart.GetRotation();
+	FQuat NewRotation = FQuat::Slerp(StartRotation, TargetRotation, InSlerpRatio);
+	OwnerActor->SetActorRotation(NewRotation);
+}
+
+void UKKReplecationComponent::CreateSpline(FHermiteCubicSpline& InSpline, float InVelocityToDerivative)
+{
+	InSpline.TargetLocation = ServerState.Transform.GetLocation();	
+	InSpline.StartLocation = ClientStart.GetLocation();	
+	InSpline.StartDerivative = ClientStartVelocity * InVelocityToDerivative;
+	InSpline.TargetDerivative = ServerState.Velocity * InVelocityToDerivative;
+}
+
+void UKKReplecationComponent::InterpolateLocation(FHermiteCubicSpline& InSpline, float InLerpRatio)
+{
+	FVector NewLocation = InSpline.InterpolateLocation(InLerpRatio);
+	OwnerActor->SetActorLocation(NewLocation);
+}
 
 void UKKReplecationComponent::OnRep_ServerState()
 {
 	UE_LOG(LogTemp, Warning, TEXT("Update from server"));
 
+	switch (GetOwnerRole())
+	{
+	case ROLE_AutonomousProxy:
+		AutonomousProxy_OnRep_ServerState();
+		break;
+	case ROLE_SimulatedProxy:
+		SimulatedProxy_OnRep_ServerState();
+		break;
+	default:
+		break;
+	}
+}
+
+void UKKReplecationComponent::SimulatedProxy_OnRep_ServerState()
+{
+	if (!OwnerActor->KKMovementComponent) return;
+	
+	ClientTimeBetweenLastUpdate = ClientTimeSinceUpdate;
+	ClientTimeSinceUpdate = 0;
+	ClientStart = OwnerActor->GetActorTransform();
+	ClientStartVelocity = OwnerActor->KKMovementComponent->Velocity;
+}
+
+void UKKReplecationComponent::AutonomousProxy_OnRep_ServerState()
+{
 	OwnerActor->SetActorTransform(ServerState.Transform);
 	OwnerActor->KKMovementComponent->Velocity = ServerState.Velocity;
 
@@ -80,8 +151,17 @@ void UKKReplecationComponent::OnRep_ServerState()
 	for (const FKKVehicleMove& CurrentMove : UnacknowledgedMoves)
 	{
 		OwnerActor->KKMovementComponent->SimulateMove(CurrentMove);
- 	}
- }
+	}
+}
+
+void UKKReplecationComponent::UpdateServerState(FKKVehicleMove InMove)
+{
+
+	ServerState.LastMove = InMove;
+	ServerState.Transform = OwnerActor->GetActorTransform();
+	ServerState.Velocity = OwnerActor->KKMovementComponent->Velocity;
+
+}
 
 void UKKReplecationComponent::ClearUnacknowledgedMoves(FKKVehicleMove InLastMove)
 {
@@ -94,23 +174,20 @@ void UKKReplecationComponent::ClearUnacknowledgedMoves(FKKVehicleMove InLastMove
 			NewMoves.Add(CurrentMove);
 		}
 	}
- 	UnacknowledgedMoves = NewMoves;
- }
-
+	UnacknowledgedMoves = NewMoves;
+}
 
 
 void UKKReplecationComponent::Server_SendMove_Implementation(FKKVehicleMove InMove)
 {
 	OwnerActor->KKMovementComponent->SimulateMove(InMove);
 
-	ServerState.LastMove = InMove;
-	ServerState.Transform = OwnerActor->GetActorTransform();
-	ServerState.Velocity = OwnerActor->KKMovementComponent->Velocity;
+	UpdateServerState(InMove);
 }
 
 bool UKKReplecationComponent::Server_SendMove_Validate(FKKVehicleMove InMove)
 {
 	return true;
-  }
+}
 
 

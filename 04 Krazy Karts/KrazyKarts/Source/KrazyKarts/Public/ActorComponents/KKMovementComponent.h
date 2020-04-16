@@ -40,7 +40,9 @@ public:
 		FVector GetRollingResistance();
 
 	
-	FKKVehicleMove CreateMove(float InDeltaTime);
+	FKKVehicleMove GetLastMove();	
+
+	void SetVelocity(FVector InVelocity) { Velocity = InVelocity; };
 
 	void SimulateMove(const FKKVehicleMove InMove);
 
@@ -51,7 +53,6 @@ public:
 	void SetThrottle(float InValue);
 
 	void SetSteeringThrow(float InValue);
-
 
 	/* In kg*/
 	UPROPERTY(EditDefaultsOnly, Category = "MovementSettings")
@@ -78,4 +79,8 @@ private:
 	float SteeringThrow;
 
 	AActor* OwnerActor;
+
+	FKKVehicleMove LastMove;
+
+	FKKVehicleMove CreateMove(float InDeltaTime);
 };

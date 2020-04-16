@@ -23,6 +23,7 @@ ABaseVehicle::ABaseVehicle()
 	PrimaryActorTick.bCanEverTick = true;
 	/* Enable replicated*/
 	bReplicates = true;
+	SetReplicateMovement(false);
 
 	CollisionBoxComponent = CreateDefaultSubobject<UBoxComponent>(TEXT("CollisionBox"));
 	CollisionBoxComponent->SetupAttachment(RootComponent);
@@ -39,6 +40,7 @@ ABaseVehicle::ABaseVehicle()
 	KKMovementComponent = CreateDefaultSubobject<UKKMovementComponent>(TEXT("KKMovementComponent"));
 	KKReplicationComponent = CreateDefaultSubobject<UKKReplecationComponent>(TEXT("KKReplicationComponent"));
 	KKReplicationComponent->SetIsReplicated(true);
+
 }
 
 // Called when the game starts or when spawned

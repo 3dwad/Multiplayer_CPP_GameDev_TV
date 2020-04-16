@@ -26,7 +26,6 @@ void UKKMovementComponent::BeginPlay()
 {
 	Super::BeginPlay();
 
-
 	// ...
 	
 }
@@ -37,6 +36,11 @@ void UKKMovementComponent::TickComponent(float DeltaTime, ELevelTick TickType, F
 {
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
 
+	if (OwnerActor->GetLocalRole() == ROLE_AutonomousProxy || OwnerActor->GetRemoteRole() == ROLE_SimulatedProxy)
+	{
+		LastMove = CreateMove(DeltaTime);
+		SimulateMove(LastMove);
+	}	
 
 	// ...
 }
@@ -59,6 +63,12 @@ FVector UKKMovementComponent::GetRollingResistance()
 
 	return -Velocity.GetSafeNormal() * RolingResistanceCoefficient * NormalForce;
 
+}
+
+FKKVehicleMove UKKMovementComponent::GetLastMove()
+{
+
+	return LastMove;
 }
 
 FKKVehicleMove UKKMovementComponent::CreateMove(float InDeltaTime)
