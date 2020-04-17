@@ -14,6 +14,7 @@ UKKReplecationComponent::UKKReplecationComponent()
 
 
 	if (GetOwner()) OwnerActor = Cast<ABaseVehicle>(GetOwner());
+	
 	// ...
 }
 
@@ -97,7 +98,11 @@ void UKKReplecationComponent::InterpolateRotation(float InSlerpRatio)
 	FQuat TargetRotation = ServerState.Transform.GetRotation();
 	FQuat StartRotation = ClientStart.GetRotation();
 	FQuat NewRotation = FQuat::Slerp(StartRotation, TargetRotation, InSlerpRatio);
-	OwnerActor->SetActorRotation(NewRotation);
+
+	if (OwnerActor->MeshOffsetComponent)
+	{
+		OwnerActor->MeshOffsetComponent->SetWorldRotation(NewRotation);
+	}
 }
 
 void UKKReplecationComponent::CreateSpline(FHermiteCubicSpline& InSpline, float InVelocityToDerivative)
@@ -111,7 +116,11 @@ void UKKReplecationComponent::CreateSpline(FHermiteCubicSpline& InSpline, float 
 void UKKReplecationComponent::InterpolateLocation(FHermiteCubicSpline& InSpline, float InLerpRatio)
 {
 	FVector NewLocation = InSpline.InterpolateLocation(InLerpRatio);
-	OwnerActor->SetActorLocation(NewLocation);
+	if (OwnerActor->MeshOffsetComponent)
+	{
+		OwnerActor->MeshOffsetComponent->SetWorldLocation(NewLocation);
+	}
+
 }
 
 void UKKReplecationComponent::OnRep_ServerState()
@@ -134,11 +143,20 @@ void UKKReplecationComponent::OnRep_ServerState()
 void UKKReplecationComponent::SimulatedProxy_OnRep_ServerState()
 {
 	if (!OwnerActor->KKMovementComponent) return;
-	
+
 	ClientTimeBetweenLastUpdate = ClientTimeSinceUpdate;
 	ClientTimeSinceUpdate = 0;
-	ClientStart = OwnerActor->GetActorTransform();
+	
+	if (OwnerActor->MeshOffsetComponent)
+	{
+		ClientStart.SetLocation(OwnerActor->MeshOffsetComponent->GetComponentLocation());
+		ClientStart.SetRotation(OwnerActor->MeshOffsetComponent->GetComponentQuat());
+	}
+
+	
 	ClientStartVelocity = OwnerActor->KKMovementComponent->Velocity;
+
+	OwnerActor->SetActorTransform(ServerState.Transform);
 }
 
 void UKKReplecationComponent::AutonomousProxy_OnRep_ServerState()
@@ -180,6 +198,8 @@ void UKKReplecationComponent::ClearUnacknowledgedMoves(FKKVehicleMove InLastMove
 
 void UKKReplecationComponent::Server_SendMove_Implementation(FKKVehicleMove InMove)
 {
+	ClientSimulatedTime += InMove.DeltaTime;
+	
 	OwnerActor->KKMovementComponent->SimulateMove(InMove);
 
 	UpdateServerState(InMove);
@@ -187,7 +207,21 @@ void UKKReplecationComponent::Server_SendMove_Implementation(FKKVehicleMove InMo
 
 bool UKKReplecationComponent::Server_SendMove_Validate(FKKVehicleMove InMove)
 {
-	return true;
+
+	float ProopsedTime = ClientSimulatedTime + InMove.DeltaTime;
+	bool ClientNotRunningAhead = ProopsedTime < GetWorld()->TimeSeconds;
+
+	if (!ClientNotRunningAhead)
+	{
+		UE_LOG(LogTemp,Error,TEXT("Client is running too fast"))
+		return false;
+	}
+	if (!InMove.IsValid())
+	{
+		return false;
+	}
+	return InMove.IsValid();
+
 }
 
 

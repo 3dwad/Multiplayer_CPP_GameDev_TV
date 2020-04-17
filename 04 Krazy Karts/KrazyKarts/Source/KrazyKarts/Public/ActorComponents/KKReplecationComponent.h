@@ -33,6 +33,7 @@ public:
 
 	void GetLifetimeReplicatedProps(TArray< FLifetimeProperty >& OutLifetimeProps) const override;
 
+
 protected:
 	// Called when the game starts
 	virtual void BeginPlay() override;
@@ -62,10 +63,12 @@ public:
 	void InterpolateRotation(float InSlerpRatio);
 
 
+	float ClientSimulatedTime;
+
+
 	/* This function called when come update from server*/
 	UFUNCTION()
  		void OnRep_ServerState(); 
-
 
 	void SimulatedProxy_OnRep_ServerState();
 	void AutonomousProxy_OnRep_ServerState();

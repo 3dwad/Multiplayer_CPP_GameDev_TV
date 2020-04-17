@@ -32,6 +32,11 @@ struct FKKVehicleMove
 
 	UPROPERTY()
 		float Time;
+
+	bool IsValid() const
+	{
+		return FMath::Abs(Throttle) <= 1 && FMath::Abs(SteeringThrow) <= 1;
+	}
 };
 
 
@@ -74,6 +79,9 @@ public:
 
 	UPROPERTY(VisibleAnywhere, Category = "VehicleSettings")
 		UBoxComponent* CollisionBoxComponent;
+
+	UPROPERTY(VisibleAnywhere, Category = "VehicleSettings")
+	USceneComponent* MeshOffsetComponent;
 
 	UPROPERTY(VisibleAnywhere, Category = "MoveSettings")
 		UKKMovementComponent* KKMovementComponent;

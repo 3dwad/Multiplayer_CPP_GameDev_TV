@@ -28,8 +28,11 @@ ABaseVehicle::ABaseVehicle()
 	CollisionBoxComponent = CreateDefaultSubobject<UBoxComponent>(TEXT("CollisionBox"));
 	CollisionBoxComponent->SetupAttachment(RootComponent);
 
+	MeshOffsetComponent = CreateDefaultSubobject<USceneComponent>(TEXT("MeshOffset"));
+	MeshOffsetComponent->SetupAttachment(CollisionBoxComponent);
+
 	SkelMeshComponent = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("SkeletalMesh"));
-	SkelMeshComponent->SetupAttachment(CollisionBoxComponent);
+	SkelMeshComponent->SetupAttachment(MeshOffsetComponent);
 
 	SpringArmComponent = CreateDefaultSubobject<USpringArmComponent>(TEXT("SpringArm"));
 	SpringArmComponent->SetupAttachment(SkelMeshComponent);
